@@ -82,8 +82,6 @@ def get_E(var_params, n_qbts, shots, J, backend):
     return E
 
 def main(args):
-    provider = AzureQuantumProvider(resource_id = "/subscriptions/58687a6b-a9bd-4f79-b7af-1f8f76760d4b/resourceGroups/AzureQuantum/providers/Microsoft.Quantum/Workspaces/HamiltonianReconstruction",\
-                                    location = "West US")
     if not os.path.exists(os.path.join(args.output_dir,"params_dir")):
         os.makedirs(os.path.join(args.output_dir,"params_dir"))
     Nparams = 4
@@ -95,10 +93,11 @@ def main(args):
         assert (len(var_params) == Nparams), "loaded params needs to have the same length as the Nparams"
     bounds = np.tile(np.array([-np.pi, np.pi]),(Nparams,1))
 
-    print([backend.name() for backend in provider.backends()])
     if args.backend == "aer_simulator":
         backend = Aer.get_backend('aer_simulator')
     else:
+        provider = AzureQuantumProvider(resource_id = "/subscriptions/58687a6b-a9bd-4f79-b7af-1f8f76760d4b/resourceGroups/AzureQuantum/providers/Microsoft.Quantum/Workspaces/HamiltonianReconstruction",\
+                                        location = "West US")
         backend = provider.get_backend(args.backend)
     print("Using backend from qiskit: ", args.backend)
     imfil = IMFIL(maxiter = args.max_iter)

@@ -16,7 +16,6 @@ HR_dist_hist = []
 def get_args(parser):
     parser.add_argument('--input_dir', type = str, help = "directory where hyperparam_dict.npy exists and HR distances and plots will be stored")
     parser.add_argument('--nth', type=int, default=1, help ="for every nth energy, get HR distance (default: 1)")
-    parser.add_argument('--load', type=int, default = 0, help = "if starting HR distance measurement from mid-terminated point args.load = 1, else 0 (default: 0)")
     args = parser.parse_args()
     return args
 
@@ -83,8 +82,6 @@ def get_HR_distance(hyperparam_dict, exp_val_dict, param_idx, params_dir_path, b
 
 def main(args):
     global HR_dist_hist
-    provider = AzureQuantumProvider(resource_id = "/subscriptions/58687a6b-a9bd-4f79-b7af-1f8f76760d4b/resourceGroups/AzureQuantum/providers/Microsoft.Quantum/Workspaces/HamiltonianReconstruction",\
-                                    location = "West US")
     if not os.path.exists(os.path.join(args.input_dir,"hyperparam_dict.npy")):
         raise ValueError( "input directory must be a valid input path that contains hyperparam_dict.npy")
     if not os.path.isdir(os.path.join(args.input_dir, "measurement")):
@@ -102,26 +99,15 @@ def main(args):
     with open(os.path.join(args.input_dir, "exp_ZZ_sqr_l.pkl"), "rb") as fp:
         exp_ZZ_sqr_l = pickle.load(fp)
     #Load backend
-    print([backend.name() for backend in provider.backends()])
     backend_name = hyperparam_dict["backend"]
     if backend_name == "aer_simulator":
          backend = Aer.get_backend(backend_name)
     else:
+        provider = AzureQuantumProvider(resource_id = "/subscriptions/58687a6b-a9bd-4f79-b7af-1f8f76760d4b/resourceGroups/AzureQuantum/providers/Microsoft.Quantum/Workspaces/HamiltonianReconstruction",\
+                                        location = "West US")
         backend = provider.get_backend(backend_name)
 
-    #get every nth HR distance
-    if args.load == 1:
-        #load HR distance
-        with open(os.path.join(args.input_dir, "HR_dist_hist.pkl"), "rb") as fp:
-            HR_dist_hist = pickle.load(fp)
-        #THIS WILL NOT ALWAYS WORK....
-        start_idx = len(HR_dist_hist)
-    elif args.load == 0:
-        start_idx = 0
-    else:
-        raise ValueError("args.load value must be 0 or 1")
-
-    for param_idx in range(start_idx, len(exp_X_l),args.nth):
+    for param_idx in range(0, len(exp_X_l),args.nth):
         exp_val_dict = {}
         exp_val_dict["exp_X"], exp_val_dict["exp_ZZ"] = exp_X_l[param_idx], exp_ZZ_l[param_idx]
         exp_val_dict["exp_X_sqr"], exp_val_dict["exp_ZZ_sqr"] =  exp_X_sqr_l[param_idx], exp_ZZ_sqr_l[param_idx]
@@ -139,7 +125,6 @@ def main(args):
     E_hist = []
     for i in range(len(exp_X_l)):
         E_hist.append(exp_X_l[i] + J*exp_ZZ_l[i])
-
 
     fig, ax = plt.subplots()
     VQE_steps = np.array(list(range(len(E_hist))))
