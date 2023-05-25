@@ -147,15 +147,17 @@ def main(args):
         E_hist = pickle.load(fp)
     #get every nth HR distance
     #start out with all sampling
-    HR_dist_index_l_path = os.path.join(args.input_dir, "HR_dist_index_l.pkl")
-    if os.path.exists(HR_dist_index_l_path):
-        with open(HR_dist_index_l_path, "rb") as fp:
-            HR_dist_index_l = pickle.load(fp)
-    else:
-        HR_dist_index_l = list(range(10)) + list(range(200, 500, 15))
-        with open(HR_dist_index_l_path, "wb") as fp:
-            pickle.dump(HR_dist_index_l, fp)
-    print("This is HR distance index list: ", HR_dist_index_l)
+    HR_dist_index_l = list(range(len(E_hist)))
+    #TODO need to load with special purposes
+    # HR_dist_index_l_path = os.path.join(args.input_dir, "HR_dist_index_l.pkl")
+    # if os.path.exists(HR_dist_index_l_path):
+    #     with open(HR_dist_index_l_path, "rb") as fp:
+    #         HR_dist_index_l = pickle.load(fp)
+    # else:
+    #     HR_dist_index_l = list(range(10)) + list(range(200, 500, 15))
+    #     with open(HR_dist_index_l_path, "wb") as fp:
+    #         pickle.dump(HR_dist_index_l, fp)
+    #print("This is HR distance index list: ", HR_dist_index_l)
 
     start_idx = 0
 

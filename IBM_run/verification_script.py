@@ -4,6 +4,13 @@ import os
 import matplotlib.pyplot as plt
 import scipy
 import math
+from qiskit import Aer, transpile, QuantumCircuit
+
+def test_Circuit(N_qubits):
+    #initialize actual circuit
+    circ = QuantumCircuit(N_qubits)
+    circ.x(3)
+    return circ
 
 def alter_type(strnum):
     if strnum == '1':
@@ -141,41 +148,53 @@ def get_exp_cross(mts, q_indices):
         sum_all += mul
     return sum_all/len(mts)
 
+
+def test_get_memory():
+    circ = test_Circuit(4)
+    circ.measure_all()
+    backend_name = "aer_simulator"
+    backend = Aer.get_backend(backend_name)
+    circ = transpile(circ, backend)
+    result = backend.run(circ, shots = 100, memory = True).result()
+    memory = result.get_memory(circ)
+    print(memory)
+
 def main():
-    N_qbts = 4
-    J = 0.5
-    Ham = get_Hamiltonian(N_qbts, J)
-    val, vec = np.linalg.eigh(Ham)
-    argsort = np.argsort(val)
-    val, vec = val[argsort], vec[:, argsort]
-    #print("This is eigenvalue: ", val[0] )
-    """
-    write validation script
-    """
-    gst = np.random.randn(16)
-    gst = gst/np.linalg.norm(gst)
-    # APPLY GATE function is not functioning right.
-    # state = apply_gate(gst, N_qbts,'xzzz')
-    state = gst
-    Hz = get_Hz(N_qbts)
-    value1 = expected_op(Hz, state)
-    mnts = get_mnts(state, N_qbts, shots= 10000)
-    value2 = get_exp_cross(mnts, [0,1,2,3])
-    print(f"expected: {value1}, actual: {value2}")
-
-    XZZZ = get_XZZZ(N_qbts)
-    value3 = expected_op(XZZZ, gst)
-    state = apply_gate(gst, N_qbts, 'xzzz')
-    mnts = get_mnts(state, N_qbts, shots = 10000)
-    value4 = get_exp_cross(mnts, [0,1,2,3])
-    print(f"expected: {value3}, actual: {value4}")
-
-    XZZI = X1_Z2_Z3(N_qbts)
-    value5 = expected_op(XZZI, gst)
-    state = apply_gate(gst, N_qbts, 'xzzz')
-    mnts = get_mnts(state, N_qbts, shots = 10000)
-    value6 = get_exp_cross(mnts, [0,1,2])
-    print(f"expected: {value5}, actual: {value6}")
+    test_get_memory()
+    # N_qbts = 4
+    # J = 0.5
+    # Ham = get_Hamiltonian(N_qbts, J)
+    # val, vec = np.linalg.eigh(Ham)
+    # argsort = np.argsort(val)
+    # val, vec = val[argsort], vec[:, argsort]
+    # #print("This is eigenvalue: ", val[0] )
+    # """
+    # write validation script
+    # """
+    # gst = np.random.randn(16)
+    # gst = gst/np.linalg.norm(gst)
+    # # APPLY GATE function is not functioning right.
+    # # state = apply_gate(gst, N_qbts,'xzzz')
+    # state = gst
+    # Hz = get_Hz(N_qbts)
+    # value1 = expected_op(Hz, state)
+    # mnts = get_mnts(state, N_qbts, shots= 10000)
+    # value2 = get_exp_cross(mnts, [0,1,2,3])
+    # print(f"expected: {value1}, actual: {value2}")
+    #
+    # XZZZ = get_XZZZ(N_qbts)
+    # value3 = expected_op(XZZZ, gst)
+    # state = apply_gate(gst, N_qbts, 'xzzz')
+    # mnts = get_mnts(state, N_qbts, shots = 10000)
+    # value4 = get_exp_cross(mnts, [0,1,2,3])
+    # print(f"expected: {value3}, actual: {value4}")
+    #
+    # XZZI = X1_Z2_Z3(N_qbts)
+    # value5 = expected_op(XZZI, gst)
+    # state = apply_gate(gst, N_qbts, 'xzzz')
+    # mnts = get_mnts(state, N_qbts, shots = 10000)
+    # value6 = get_exp_cross(mnts, [0,1,2])
+    # print(f"expected: {value5}, actual: {value6}")
     # ops_l = ['xzzz','zxzz','zzxz','zzzx']
     # state1 = apply_gate(gst, N_qbts, ops_l[0])
     # mnts1 = get_mnts(state1, N_qbts, shots = 100000)

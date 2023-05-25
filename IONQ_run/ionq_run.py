@@ -112,7 +112,8 @@ def main(args):
     bounds = np.tile(np.array([-np.pi, np.pi]), (Nparams,1))
 
     try:
-        gst_E = np.load(f"/root/research/HR/31AUG2022/readout_noise_simulation/gst_E_dict_J_{args.J}_no_periodic.npy",allow_pickle = True).item()[args.n_qbts]
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        gst_E = np.load(os.path.join(dir_path, f"gst_E_dict_J_{args.J}_no_periodic.npy"), allow_pickle = True).item()[args.n_qbts]
     except:
         raise ValueError(f"no corresponding index to ground state energy J value to {args.n_qbts} qubits")
     backend = Aer.get_backend('aer_simulator')
