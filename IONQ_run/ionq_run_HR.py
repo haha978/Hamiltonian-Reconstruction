@@ -158,7 +158,7 @@ def main(args):
         param_idx_l = list(range(len(E_hist)))
 
     #get every nth HR distance
-    for param_idx in param_idx_l[start_idx:]:
+    for param_idx in param_idx_l:
         HR_dist = get_HR_distance(hyperparam_dict, param_idx, params_dir_path, backend)
         print("This is HR distance: ", HR_dist)
         HR_dist_hist.append(HR_dist)
@@ -181,6 +181,6 @@ def main(args):
     plt.savefig(args.input_dir+'/'+  str(n_qbts)+"qubits_"+ str(n_layers)+f"layers_shots_{shots}_HR_dist.png", dpi = 300, bbox_inches='tight')
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = "VQE for 1-D TFIM with non-periodic boundary condition")
+    parser = argparse.ArgumentParser(description = "HR for 1-D TFIM with non-periodic boundary condition")
     args = get_args(parser)
     main(args)
