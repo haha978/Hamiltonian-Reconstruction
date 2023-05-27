@@ -11,7 +11,7 @@ def main(args):
     #give your list here
     param_idx_l = list(range(0, 800, 50)) + list(range(800, 1350, 15))
     print(len(param_idx_l))
-    #np.save(os.path.join(args.input_dir, "param_idx_l.npy"), np.array(param_idx_l))
+    np.save(os.path.join(args.input_dir, "param_idx_l.npy"), np.array(param_idx_l))
 
 
 if __name__ == '__main__':
