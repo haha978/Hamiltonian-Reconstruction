@@ -17,6 +17,8 @@ def get_args(parser):
     parser.add_argument('--input_dir', type = str, help = "directory where hyperparam_dict.npy exists and HR distances and plots will be stored")
     parser.add_argument('--shots', type=int, default=1000, help = "number of shots during HamiltonianReconstuction (default: 1000)")
     parser.add_argument('--backend', type = str, default = "aer_simulator", help = "backend for ionq runs (aer_simulator, ionq.simulator, ionq.qpu, ionq.qpu.aria-1, default = aer_simulator)")
+    parser.add_argument('--param_idx_l', action = 'store_true', help = "if there is param_idx_l, then use param_idx_l.npy in input_dir \
+                                to load the parameter index list to measure corresponding HR distances")
     args = parser.parse_args()
     return args
 
@@ -145,24 +147,18 @@ def main(args):
 
     with open(os.path.join(args.input_dir, "E_hist.pkl"), "rb") as fp:
         E_hist = pickle.load(fp)
-    #get every nth HR distance
-    #start out with all sampling
-    HR_dist_index_l = list(range(len(E_hist)))
+
     #TODO need to load with special purposes
-    # HR_dist_index_l_path = os.path.join(args.input_dir, "HR_dist_index_l.pkl")
-    # if os.path.exists(HR_dist_index_l_path):
-    #     with open(HR_dist_index_l_path, "rb") as fp:
-    #         HR_dist_index_l = pickle.load(fp)
-    # else:
-    #     HR_dist_index_l = list(range(10)) + list(range(200, 500, 15))
-    #     with open(HR_dist_index_l_path, "wb") as fp:
-    #         pickle.dump(HR_dist_index_l, fp)
-    #print("This is HR distance index list: ", HR_dist_index_l)
-
-    start_idx = 0
+    if args.param_idx_l:
+        param_idx_l_path = os.path.join(args.input_dir, "param_idx_l.npy")
+        assert os.path.isfile(param_idx_l_path), "there is no param_idx_l.npy file in input_dir"
+        param_idx_l = np.load(param_idx_l_path, allow_pickle = "True")
+        print("This is parameters we are sampling: ", param_idx_l)
+    else:
+        param_idx_l = list(range(len(E_hist)))
 
     #get every nth HR distance
-    for param_idx in HR_dist_index_l[start_idx:]:
+    for param_idx in param_idx_l[start_idx:]:
         HR_dist = get_HR_distance(hyperparam_dict, param_idx, params_dir_path, backend)
         print("This is HR distance: ", HR_dist)
         HR_dist_hist.append(HR_dist)
@@ -179,7 +175,7 @@ def main(args):
             str(round(gst_E, 3)) + '\n' + 'Estimated Ground Energy: '+ str(round(float(min(E_hist)), 3))  + '\n' "Backend name: " + backend_name
     plt.title(title, fontdict = {'fontsize' : 15})
     ax2 = ax.twinx()
-    ax2.scatter(HR_dist_index_l, HR_dist_hist, c = 'r', alpha = 0.8, marker=".", label = "HR distance")
+    ax2.scatter(param_idx_l, HR_dist_hist, c = 'r', alpha = 0.8, marker=".", label = "HR distance")
     ax2.set_ylabel("HR distance")
     ax2.legend(bbox_to_anchor=(1.28, 1.22), fontsize = 10)
     plt.savefig(args.input_dir+'/'+  str(n_qbts)+"qubits_"+ str(n_layers)+f"layers_shots_{shots}_HR_dist.png", dpi = 300, bbox_inches='tight')
