@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(0, "../")
 import qiskit
 from qiskit import QuantumCircuit, Aer
 from qiskit.visualization import plot_histogram

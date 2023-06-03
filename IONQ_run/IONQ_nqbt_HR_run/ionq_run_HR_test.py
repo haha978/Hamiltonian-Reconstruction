@@ -1,4 +1,6 @@
-from ionq_run_HR import Q_Circuit, get_params
+import sys
+sys.path.insert(0, "../")
+from IONQ_nqbt_HR_run.ionq_run_HR import Q_Circuit, get_params
 from qiskit import QuantumCircuit, Aer
 from qiskit import transpile
 import numpy as np
@@ -120,9 +122,10 @@ def get_HR_distance_noiseless(hyperparam_dict, wf, ops_l):
 
 
 def test1():
-    input_dir = "/root/research/HR/PAPER_FIGURES/1-D-TFIM/IONQ_run/6qbt_tr1/"
+    #input_dir can be any output_dir of IONQ_nqbt_HR_run/ionq_run.py and IONQ_nqbt_HR_run/ionq_run_HR.py
+    input_dir = "/root/research/HR/PAPER_FIGURES/1-D-TFIM/IONQ_run/IONQ_nqbt_HR_run/tr1/"
     params_dir_path = os.path.join(input_dir, "params_dir")
-    param_idx = 500
+    param_idx = 200
     var_params = get_params(params_dir_path, param_idx)
     hyperparam_dict= np.load(os.path.join(input_dir, "hyperparam_dict.npy"), allow_pickle = True).item()
     n_qbts = hyperparam_dict["n_qbts"]
