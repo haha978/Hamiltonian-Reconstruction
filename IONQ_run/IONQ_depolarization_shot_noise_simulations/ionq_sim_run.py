@@ -1,9 +1,13 @@
+import sys
+sys.path.insert(0, "../")
 import qiskit
 from qiskit import QuantumCircuit, Aer
 from qiskit.visualization import plot_histogram
 from qiskit.tools.monitor import job_monitor
 from azure.quantum.qiskit import AzureQuantumProvider
 from qiskit import transpile
+from qiskit_aer.noise import NoiseModel, depolarizing_error
+from qiskit_aer import AerSimulator
 import numpy as np
 import argparse
 from utils import get_exp_X, get_exp_ZZ
@@ -19,6 +23,8 @@ def get_args(parser):
     parser.add_argument('--n_qbts', type = int, default = 6, help = "number of qubits (default: 6)")
     parser.add_argument('--J', type = float, default = 0.5, help = "(default J: 0.5)")
     parser.add_argument('--shots', type = int, default = 10000, help = "Number of shots (default: 10000)")
+    parser.add_argument('--p1', type = float, help = "one-qubit gate depolarization noise")
+    parser.add_argument('--p2', type = float, help = "two-qubit gate depolarization noise")
     parser.add_argument('--max_iter', type = int, default = 10000, help = "maximum number of iterations (default: 10000)")
     parser.add_argument('--n_layers', type = int, default = 3, help = "number of ALA ansatz layers needed (default: 3)")
     parser.add_argument('--output_dir', type = str, default = ".", help = "output directory being used (default: .)")
