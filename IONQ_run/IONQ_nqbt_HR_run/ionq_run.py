@@ -3,6 +3,8 @@ sys.path.insert(0, "../")
 from utils import get_exp_X, get_exp_ZZ
 import qiskit
 from qiskit import QuantumCircuit, Aer
+from qiskit_aer.noise import NoiseModel, depolarizing_error
+from qiskit_aer import AerSimulator
 from qiskit.visualization import plot_histogram
 from qiskit.tools.monitor import job_monitor
 from azure.quantum.qiskit import AzureQuantumProvider
@@ -25,6 +27,8 @@ def get_args(parser):
     parser.add_argument('--n_layers', type = int, default = 3, help = "number of ALA ansatz layers needed (default: 3)")
     parser.add_argument('--output_dir', type = str, default = ".", help = "output directory being used (default: .)")
     parser.add_argument('--init_param', type = str, default = "NONE", help = "parameters for initialization (default: NONE)")
+    parser.add_argument('--p1', type = float, default = 0.0, help = "one-qubit gate depolarization noise (default: 0.0)")
+    parser.add_argument('--p2', type = float, default = 0.0, help = "two-qubit gate depolarization noise (default: 0.0)")
     args = parser.parse_args()
     return args
 
@@ -118,7 +122,28 @@ def main(args):
         gst_E = np.load(os.path.join(dir_path, f"gst_E_dict_J_{args.J}_no_periodic.npy"), allow_pickle = True).item()[args.n_qbts]
     except:
         raise ValueError(f"no corresponding index to ground state energy J value to {args.n_qbts} qubits")
-    backend = Aer.get_backend('aer_simulator')
+
+    hyperparam_dict = {}
+    hyperparam_dict["n_qbts"], hyperparam_dict["J"] = args.n_qbts, args.J
+    hyperparam_dict["shots"], hyperparam_dict["n_layers"] = args.shots, args.n_layers
+    hyperparam_dict["gst_E"] = gst_E
+    hyperparam_dict["p1"] = args.p1
+    hyperparam_dict["p2"] = args.p2
+
+    if args.p1 == 0 and args.p2 == 0:
+        backend = Aer.get_backend('aer_simulator')
+        title = "VQE 1-D "+ str(args.n_qbts) +" qubits TFIM" + "\n" + f"J: {args.J}, shots: {args.shots}" + '\n' + 'True Ground energy: ' + \
+                str(round(gst_E, 3)) + '\n' + 'Estimated Ground Energy: '+ str(round(float(min(E_hist)), 3))
+    else:
+        noise_model = NoiseModel()
+        p1_error = depolarizing_error(args.p1, 1)
+        p2_error = depolarizing_error(args.p2, 2)
+        noise_model.add_all_qubit_quantum_error(p1_error, ['h','ry'])
+        noise_model.add_all_qubit_quantum_error(p2_error, ['cx'])
+        backend = AerSimulator(noise_model = noise_model)
+        title = "VQE 1-D "+ str(args.n_qbts) +" qubits TFIM" + "\n" + f"J: {args.J}, shots: {args.shots}" + '\n' + f"p1: {args.p1}, p2: {args.p2}" + '\n' + 'True Ground energy: ' + \
+                str(round(gst_E, 3)) + '\n' + 'Estimated Ground Energy: '+ str(round(float(min(E_hist)), 3))
+
     imfil = IMFIL(maxiter = args.max_iter)
     get_E_func = partial(get_E, n_qbts = args.n_qbts, shots = args.shots, J = args.J, backend = backend)
     result = imfil.minimize(get_E_func, x0 = var_params, bounds = bounds)
@@ -128,16 +153,10 @@ def main(args):
     ax.set_xlabel('VQE Iterations')
     ax.set_ylabel("Energy")
     ax.legend(bbox_to_anchor=(1.28, 1.30), fontsize = 10)
-    title = "VQE 1-D "+ str(args.n_qbts) +" qubits TFIM" + "\n" + f"J: {args.J}, shots: {args.shots}" + '\n' + 'True Ground energy: ' + \
-            str(round(gst_E, 3)) + '\n' + 'Estimated Ground Energy: '+ str(round(float(min(E_hist)), 3))
     plt.title(title, fontdict = {'fontsize' : 15})
     plt.savefig(args.output_dir+'/'+  str(args.n_qbts)+"qubits_"+ str(args.n_layers)+f"layers_shots_{args.shots}.png", dpi = 300, bbox_inches='tight')
-    # Create hyperparam_dict for Hamiltonian Reconstruction
-    hyperparam_dict = {}
-    hyperparam_dict["n_qbts"], hyperparam_dict["J"] = args.n_qbts, args.J
-    hyperparam_dict["shots"], hyperparam_dict["n_layers"] = args.shots, args.n_layers
-    hyperparam_dict["gst_E"] = gst_E
-    np.save(os.path.join(args.output_dir, "hyperparam_dict.npy"), hyperparam_dict)
+    # Save hyperparam_dict for Hamiltonian Reconstruction
+    np.save(os.path.join(args.output_dir, "VQE_hyperparam_dict.npy"), hyperparam_dict)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = "VQE for 1-D TFIM with non-periodic boundary condition")

@@ -2,6 +2,8 @@ import sys
 sys.path.insert(0, "../")
 import qiskit
 from qiskit import QuantumCircuit, Aer
+from qiskit_aer.noise import NoiseModel, depolarizing_error
+from qiskit_aer import AerSimulator
 from qiskit.visualization import plot_histogram
 from qiskit.tools.monitor import job_monitor
 from azure.quantum.qiskit import AzureQuantumProvider
@@ -16,11 +18,14 @@ import os
 HR_dist_hist = []
 
 def get_args(parser):
-    parser.add_argument('--input_dir', type = str, help = "directory where hyperparam_dict.npy exists and HR distances and plots will be stored")
+    parser.add_argument('--input_dir', type = str, help = "directory where VQE_hyperparam_dict.npy exists and HR distances and plots will be stored")
     parser.add_argument('--shots', type=int, default=1000, help = "number of shots during HamiltonianReconstuction (default: 1000)")
     parser.add_argument('--backend', type = str, default = "aer_simulator", help = "backend for ionq runs (aer_simulator, ionq.simulator, ionq.qpu, ionq.qpu.aria-1, default = aer_simulator)")
+    parser.add_argument('--use_VQE_p1_p2', action = 'store_true', help = "Use VQE p1 and p2 values when simulating HR. Only compatible with aer_simulator backend")
     parser.add_argument('--param_idx_l', action = 'store_true', help = "if there is param_idx_l, then use param_idx_l.npy in input_dir \
                                 to load the parameter index list to measure corresponding HR distances")
+    parser.add_argument('--p1', type = float, default = 0.0, help = "one-qubit gate depolarization noise (default: 0.0)")
+    parser.add_argument('--p2', type = float, default = 0.0, help = "two-qubit gate depolarization noise (default: 0.0)")
     args = parser.parse_args()
     return args
 
@@ -117,27 +122,41 @@ def main(args):
     global HR_dist_hist
     provider = AzureQuantumProvider(resource_id = "/subscriptions/58687a6b-a9bd-4f79-b7af-1f8f76760d4b/resourceGroups/AzureQuantum/providers/Microsoft.Quantum/Workspaces/HamiltonianReconstruction",\
                                     location = "West US")
-    if not os.path.exists(os.path.join(args.input_dir,"hyperparam_dict.npy")):
-        raise ValueError( "input directory must be a valid input path that contains hyperparam_dict.npy")
+    if not os.path.exists(os.path.join(args.input_dir,"VQE_hyperparam_dict.npy")):
+        raise ValueError( "input directory must be a valid input path that contains VQE_hyperparam_dict.npy")
     if not os.path.isdir(os.path.join(args.input_dir, "measurement")):
         os.makedirs(os.path.join(args.input_dir, "measurement"))
     #LOAD All the data provided here
-    hyperparam_dict_loaded = np.load(os.path.join(args.input_dir, "hyperparam_dict.npy"), allow_pickle = True).item()
+    hyperparam_dict_loaded = np.load(os.path.join(args.input_dir, "VQE_hyperparam_dict.npy"), allow_pickle = True).item()
     params_dir_path = os.path.join(args.input_dir,"params_dir")
     backend_name = args.backend
-    if backend_name == "aer_simulator":
-         backend = Aer.get_backend(backend_name)
-    else:
-        backend = provider.get_backend(backend_name)
-
     hyperparam_dict = {}
     hyperparam_dict["gst_E"] = hyperparam_dict_loaded["gst_E"]
     hyperparam_dict["J"] = hyperparam_dict_loaded["J"]
     hyperparam_dict["n_qbts"] = hyperparam_dict_loaded["n_qbts"]
     hyperparam_dict["n_layers"] = hyperparam_dict_loaded["n_layers"]
-    #need to use a new backend
     hyperparam_dict["shots"] = args.shots
     hyperparam_dict["backend"] = backend_name
+    p1, p2 = args.p1, args.p2
+    if backend_name == "aer_simulator":
+        if args.use_VQE_p1_p2:
+            p1, p2 = hyperparam_dict_loaded["p1"], hyperparam_dict_loaded["p2"]
+        if p1 == 0 and p2 == 0:
+            backend = Aer.get_backend(backend_name)
+        else:
+            noise_model = NoiseModel()
+            p1_error = depolarizing_error(p1, 1)
+            p2_error = depolarizing_error(p2, 2)
+            noise_model.add_all_qubit_quantum_error(p1_error, ['h','ry'])
+            noise_model.add_all_qubit_quantum_error(p2_error, ['cx'])
+            backend = AerSimulator(noise_model = noise_model)
+    else:
+        assert (not args.use_VQE_p1_p2), "Can't simulate p1 and p2 value when submitting jobs to IONQ simulator/hardware"
+        assert (p1 == 0 and p2 == 0), "p1 and p2 values shouldn't be set when submitting job to IONQ simulator/hardware"
+        backend = provider.get_backend(backend_name)
+    hyperparam_dict["p1"], hyperparam_dict["p2"] = p1, p2
+    np.save(os.path.join(args.input_dir, "HR_hyperparam_dict.npy"), hyperparam_dict)
+
     print("This is hyperparameter dictionary newly constructed: ", hyperparam_dict)
     #number of shots
     shots = args.shots
@@ -173,7 +192,11 @@ def main(args):
     ax.set_xlabel('VQE Iterations')
     ax.set_ylabel("Energy")
     ax.legend(bbox_to_anchor=(1.28, 1.30), fontsize = 10)
-    title = "VQE 1-D "+ str(n_qbts) +" qubits TFIM" + "\n" + f"J: {J}, shots: {shots}" + '\n' + 'True Ground energy: ' + \
+    if p1 == 0 and p2 == 0:
+        title = "VQE 1-D "+ str(n_qbts) +" qubits TFIM" + "\n" + f"J: {J}, shots: {shots}" + '\n' + 'True Ground energy: ' + \
+            str(round(gst_E, 3)) + '\n' + 'Estimated Ground Energy: '+ str(round(float(min(E_hist)), 3))  + '\n' "Backend name: " + backend_name
+    else:
+        title = "VQE 1-D "+ str(n_qbts) +" qubits TFIM" + "\n" + f"J: {J}, shots: {shots}" + '\n' + f"p1: {p1}, p2: {p2}" + '\n' + 'True Ground energy: ' + \
             str(round(gst_E, 3)) + '\n' + 'Estimated Ground Energy: '+ str(round(float(min(E_hist)), 3))  + '\n' "Backend name: " + backend_name
     plt.title(title, fontdict = {'fontsize' : 15})
     ax2 = ax.twinx()
