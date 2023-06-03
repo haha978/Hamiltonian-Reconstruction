@@ -120,8 +120,6 @@ def get_HR_distance(hyperparam_dict, param_idx, params_dir_path, backend):
 
 def main(args):
     global HR_dist_hist
-    provider = AzureQuantumProvider(resource_id = "/subscriptions/58687a6b-a9bd-4f79-b7af-1f8f76760d4b/resourceGroups/AzureQuantum/providers/Microsoft.Quantum/Workspaces/HamiltonianReconstruction",\
-                                    location = "West US")
     if not os.path.exists(os.path.join(args.input_dir,"VQE_hyperparam_dict.npy")):
         raise ValueError( "input directory must be a valid input path that contains VQE_hyperparam_dict.npy")
     if not os.path.isdir(os.path.join(args.input_dir, "measurement")):
@@ -153,6 +151,8 @@ def main(args):
     else:
         assert (not args.use_VQE_p1_p2), "Can't simulate p1 and p2 value when submitting jobs to IONQ simulator/hardware"
         assert (p1 == 0 and p2 == 0), "p1 and p2 values shouldn't be set when submitting job to IONQ simulator/hardware"
+        provider = AzureQuantumProvider(resource_id = "/subscriptions/58687a6b-a9bd-4f79-b7af-1f8f76760d4b/resourceGroups/AzureQuantum/providers/Microsoft.Quantum/Workspaces/HamiltonianReconstruction",\
+                                        location = "West US")
         backend = provider.get_backend(backend_name)
     hyperparam_dict["p1"], hyperparam_dict["p2"] = p1, p2
     np.save(os.path.join(args.input_dir, "HR_hyperparam_dict.npy"), hyperparam_dict)

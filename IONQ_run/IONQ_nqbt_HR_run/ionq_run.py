@@ -133,7 +133,7 @@ def main(args):
     if args.p1 == 0 and args.p2 == 0:
         backend = Aer.get_backend('aer_simulator')
         title = "VQE 1-D "+ str(args.n_qbts) +" qubits TFIM" + "\n" + f"J: {args.J}, shots: {args.shots}" + '\n' + 'True Ground energy: ' + \
-                str(round(gst_E, 3)) + '\n' + 'Estimated Ground Energy: '+ str(round(float(min(E_hist)), 3))
+                str(round(gst_E, 3)) + '\n'
     else:
         noise_model = NoiseModel()
         p1_error = depolarizing_error(args.p1, 1)
@@ -142,13 +142,14 @@ def main(args):
         noise_model.add_all_qubit_quantum_error(p2_error, ['cx'])
         backend = AerSimulator(noise_model = noise_model)
         title = "VQE 1-D "+ str(args.n_qbts) +" qubits TFIM" + "\n" + f"J: {args.J}, shots: {args.shots}" + '\n' + f"p1: {args.p1}, p2: {args.p2}" + '\n' + 'True Ground energy: ' + \
-                str(round(gst_E, 3)) + '\n' + 'Estimated Ground Energy: '+ str(round(float(min(E_hist)), 3))
+                str(round(gst_E, 3)) + '\n'
 
     imfil = IMFIL(maxiter = args.max_iter)
     get_E_func = partial(get_E, n_qbts = args.n_qbts, shots = args.shots, J = args.J, backend = backend)
     result = imfil.minimize(get_E_func, x0 = var_params, bounds = bounds)
     fig, ax = plt.subplots()
     VQE_steps = np.array(list(range(len(E_hist))))
+    title += 'Estimated Ground Energy: '+ str(round(float(min(E_hist)), 3))
     ax.scatter(VQE_steps, E_hist, c = 'b', alpha = 0.8, marker = ".", label = "Energy")
     ax.set_xlabel('VQE Iterations')
     ax.set_ylabel("Energy")
