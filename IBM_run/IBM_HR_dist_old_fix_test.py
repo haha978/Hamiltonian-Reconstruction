@@ -32,6 +32,7 @@ def get_noiseless_cov_mat(ops_l, wf):
     return cov_mat
 
 def test1():
+    #INPUT_DIR should be directory that contians the output of script: IBM_VQE_no_periodic_IMFIL.py, IBM_HR_dist_old.py, and IBM_HR_dist_fix.py (in this order)
     INPUT_DIR ="/root/research/HR/PAPER_FIGURES/1-D-TFIM/IBM_run/4_qubits_TFIM_X+0.5ZZ/run_shots_10000"
     params_l = get_file(INPUT_DIR, "angles_file.dat")
     N_qbt = 4
@@ -50,9 +51,9 @@ def test1():
     m_dict = np.load(new_mnts_dicts_path, allow_pickle = True).item()
     print("Covariance matrix with shot noise")
     print(get_cov_mat(m_dict))
-    #print(m_dict)
 
 def test2():
+    #INPUT_DIR should be directory that contians the output of script: IBM_VQE_no_periodic_IMFIL.py, IBM_HR_dist_old.py, and IBM_HR_dist_fix.py (in this order)
     INPUT_DIR ="/root/research/HR/PAPER_FIGURES/1-D-TFIM/IBM_run/4_qubits_TFIM_X+0.5ZZ/run_shots_10000"
     params_l = get_file(INPUT_DIR, "angles_file.dat")
     N_qbt = 4
