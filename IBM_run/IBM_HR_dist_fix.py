@@ -12,14 +12,16 @@ import pickle
 import os
 import matplotlib.pyplot as plt
 
-parser = argparse.ArgumentParser(description = "HR distance measurement")
-parser.add_argument('--n_qbts',type = int, default = 4, help = "number of qubits(default: 4)")
-parser.add_argument('--load_dir', type = str, default = '.', help = "directory where the file exists")
-parser.add_argument('--load_param_l', type = str, default = './GND_E__-3.5067__angles_file.dat', help = "Loading list of parameters obtained from a VQE run")
-parser.add_argument('--J', type = float, default = 0.5, help = "coupling strength")
-parser.add_argument('--shots', type = int, default = 1000, help = "number of shots")
-parser.add_argument('--backend', type = str, default = 'aer_simulator', help = "Backend: 'aer_simulator', 'ibmq_manila', and 'ibm_oslo'")
-args = parser.parse_args()
+
+def get_args(parser):
+    parser.add_argument('--n_qbts',type = int, default = 4, help = "number of qubits(default: 4)")
+    parser.add_argument('--load_dir', type = str, default = '.', help = "directory where the file exists")
+    parser.add_argument('--load_param_l', type = str, default = './GND_E__-3.5067__angles_file.dat', help = "Loading list of parameters obtained from a VQE run")
+    parser.add_argument('--J', type = float, default = 0.5, help = "coupling strength")
+    parser.add_argument('--shots', type = int, default = 1000, help = "number of shots")
+    parser.add_argument('--backend', type = str, default = 'aer_simulator', help = "Backend: 'aer_simulator', 'ibmq_manila', and 'ibm_oslo'")
+    args = parser.parse_args()
+    return args
 
 HR_dist_hist = []
 
@@ -123,4 +125,6 @@ def main():
     os.chdir(current_path)
 
 if __name__== '__main__':
-    main()
+    parser = argparse.ArgumentParser(description = "HR distance measurement")
+    args = get_args(parser)
+    main(args)

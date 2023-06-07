@@ -30,27 +30,33 @@ def str_l_to_num_l(mts):
         num_l.append(num_mt)
     return num_l
 
-def get_Hamiltonian(N_qubits, J):
+def get_Hx(N_qubits):
     sig_x = np.array([[0., 1.], [1., 0.]])
-    sig_z = np.array([[1., 0.], [0., -1.]])
     Hx = 0
     for i in range(N_qubits):
         temp = [np.eye(2)]*N_qubits
         temp[i] = sig_x
         tempSum = temp[0]
         for j in range(1, N_qubits):
-            tempSum = np.kron(tempSum, temp[j])
+            tempSum = np.kron(temp[j], tempSum)
         Hx += tempSum
-    Hz = 0
+    return Hx
+
+def get_Hzz(N_qubits):
+    sig_z = np.array([[1., 0.], [0., -1.]])
+    Hzz = 0
     for i in range(N_qubits-1):
         temp = [np.eye(2)]*N_qubits
         temp[i] = sig_z
         temp[(i+1)] = sig_z
         tempSum = temp[0]
         for j in range(1, N_qubits):
-            tempSum = np.kron(tempSum, temp[j])
-        Hz += tempSum
-    return Hx + J*Hz
+            tempSum = np.kron(temp[j], tempSum)
+        Hzz += tempSum
+    return Hzz
+
+def get_Hamiltonian(N_qubits, J):
+    return get_Hx(N_qubits) + J*get_Hzz(N_qubits)
 
 def get_GST_E_and_wf(Ham):
     val, vec = np.linalg.eigh(Ham)
