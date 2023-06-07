@@ -3,26 +3,32 @@ from functools import reduce
 import os
 import pickle
 
-
 def get_exp_X(X_vals, expo):
-    sum_x_l = list(map(lambda x: np.sum(np.array(x)),X_vals))
-    exp_x = reduce(lambda x, y: x+y**expo, sum_x_l, 0)/len(sum_x_l)
+    exp_x = 0
+    for X_val in X_vals:
+        sum_x = np.sum(X_val)
+        exp_x += (sum_x**expo)
+    exp_x = exp_x/len(X_vals)
     return exp_x
 
 def get_exp_ZZ(Z_vals, expo):
-    def coupling(Z_val):
+    exp_ZZ = 0
+    for Z_val in Z_vals:
         sum_zz = 0
+        #non periodic boundary condition
         for i in range(len(Z_val)-1):
             sum_zz += Z_val[i]*Z_val[(i+1)]
-        return sum_zz
-    Z_couplings = list(map(coupling, Z_vals))
-    return reduce(lambda x,y: x+y**expo, Z_couplings, 0)/len(Z_couplings)
+        exp_ZZ += (sum_zz**expo)
+    exp_ZZ = exp_ZZ/len(Z_vals)
+    return exp_ZZ
 
-def mem_to_mem_num(memory):
-    mem_num = []
-    for mem in memory:
-        mem_num.append(list(map(lambda x: 1 if x == '0' else -1, mem)))
-    return mem_num
+def str_l_to_num_l(mts):
+    num_l = []
+    for mt in mts:
+        num_mt = list(map(alter_type, mt))
+        num_mt.reverse()
+        num_l.append(num_mt)
+    return num_l
 
 def get_Hamiltonian(N_qubits, J):
     sig_x = np.array([[0., 1.], [1., 0.]])

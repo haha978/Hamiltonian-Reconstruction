@@ -3,7 +3,7 @@ import qiskit
 from qiskit import QuantumCircuit
 import time
 import numpy as np
-from utils import get_exp_X, get_exp_ZZ, distanceVecFromSubspace, get_exp_cross, get_file, get_GST_E_and_wf, get_Hamiltonian, str_l_to_num_l
+from utils import get_exp_X, get_exp_ZZ, distanceVecFromSubspace, get_exp_cross, get_file, get_GST_E_and_wf, get_Hamiltonian
 from qiskit.algorithms.optimizers import SPSA
 import argparse
 from functools import partial, reduce
@@ -67,7 +67,6 @@ def get_measurement(N_qubits, var_params, backend, backend_nm, shots, ops):
         memory = result.get_memory(circ)
         end_time = time.time()
         print("Total time retrieving result tooked: ", end_time-start_time)
-    memory = str_l_to_num_l(memory)
     return memory
 
 def get_cov_mat(m_dict):
@@ -124,7 +123,10 @@ def main():
         ops_l = ['xxxx', 'zzzz', 'xzzz', 'zxzz', 'zzxz', 'zzzx']
         ops_l = [ops for ops in ops_l if ops not in m_dict.keys()]
         for ops in ops_l:
-            mnts_num = get_measurement(N_qubits, params, backend, args.backend, shots, ops)
+            mnts_str = get_measurement(N_qubits, params, backend, args.backend, shots, ops)
+            mnts_num = []
+            for mnt_str in mnts_str:
+                mnts_num.append(list(map(lambda x: 1 if x=='0' else -1, mnt_str)))
             m_dict[ops] = mnts_num
             np.save(m_dict_path, m_dict)
         print(f"This is E = X + {J}ZZ: ",get_exp_X(m_dict['xxxx'], 1)+J*get_exp_ZZ(m_dict['zzzz'],1))

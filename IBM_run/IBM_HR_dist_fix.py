@@ -3,7 +3,7 @@ import qiskit
 from qiskit import QuantumCircuit
 import time
 import numpy as np
-from utils import get_exp_X, get_exp_ZZ, distanceVecFromSubspace, get_exp_cross, get_file, get_GST_E_and_wf, get_Hamiltonian, str_l_to_num_l
+from utils import get_exp_X, get_exp_ZZ, distanceVecFromSubspace, get_exp_cross, get_file, get_GST_E_and_wf, get_Hamiltonian
 from qiskit.algorithms.optimizers import SPSA
 import argparse
 from functools import partial, reduce
@@ -35,41 +35,6 @@ def Q_Circuit(N_qubits, var_params):
     circ.cx(1, 2)
     return circ
 
-def get_measurement(N_qubits, var_params, backend, backend_nm, shots, ops):
-    assert len(ops) == N_qubits, "number of qubits must match number of opss"
-    circ = Q_Circuit(N_qubits, var_params)
-    for i, op in enumerate(ops):
-        if op == 'x':
-            circ.h(i)
-        elif op == 'y':
-            circ.sdg(i)
-            circ.h(i)
-    circ.measure_all()
-    if backend_nm == "ibm_oslo":
-        q_map = [0,1,3,5]
-    elif backend_nm == "ibmq_manila":
-        q_map = [0,1,2,3]
-    elif backend_nm == "aer_simulator":
-        q_map = [0,1,2,3]
-    else:
-        RuntimeError("Unsupported backend device")
-    circ = transpile(circ, backend, initial_layout = q_map)
-    if backend_nm == 'aer_simulator':
-        result = backend.run(circ, shots = shots, memory = True).result()
-        memory = result.get_memory(circ)
-    else:
-        job = backend.run(circ, shots = shots, memory = True)
-        print("Job created!")
-        retrieved_job = backend.retrieve_job(job.job_id())
-        start_time = time.time()
-        print("Start counting time")
-        result = retrieved_job.result()
-        memory = result.get_memory(circ)
-        end_time = time.time()
-        print("Total time retrieving result tooked: ", end_time-start_time)
-    memory = str_l_to_num_l(memory)
-    return memory
-
 def get_cov_mat(m_dict):
     cov_mat = np.zeros([2,2])
     exp_X, exp_ZZ = get_exp_X(m_dict['xxxx'], 1), get_exp_ZZ(m_dict['zzzz'], 1)
@@ -98,35 +63,30 @@ def main():
     N_qubits = args.n_qbts
     shots = args.shots
     title = "TFIM " + str(int(N_qubits)) + " spins"
-    if args.backend =='aer_simulator':
-        backend = Aer.get_backend('aer_simulator')
-    else:
-        IBMQ.save_account('9c02c0ee200f7c9e0de8ab0033a84d0b551bc86151f391920aee8acb1e63c3432e3a6084eedd54cd844d78794198eed88f798b055ce46aaaeefe5eae346f92b9', overwrite = True)
-        provider = IBMQ.load_account()
-        if args.backend == 'ibmq_manila':
-            backend = provider.backend.ibmq_manila
-        elif args.backend == 'ibm_oslo':
-            backend = provider.backend.ibm_oslo
-        else:
-            raise ValueError("no backend device")
-    if os.path.isfile("HR_dist_hist.pkl"):
-        HR_dist_hist = get_file(os.getcwd(), "HR_dist_hist.pkl")
+
     if not os.path.isdir("mnts_dicts"):
         os.mkdir("mnts_dicts")
-    for idx in range(len(HR_dist_hist),len(angles)):
+    if not os.path.isdir("new_mnts_dicts"):
+        os.mkdir("new_mnts_dicts")
+
+    for idx in range(0,len(angles)):
         #breakpoint()
         params = angles[idx]
         m_dict_path = os.path.join("mnts_dicts",f"m_dict_{idx}.npy")
+        new_m_dict_path = os.path.join("new_mnts_dicts", f"m_dict_{idx}.npy")
         if os.path.isfile(m_dict_path):
             m_dict = np.load(m_dict_path, allow_pickle = True).item()
         else:
             m_dict = {}
         ops_l = ['xxxx', 'zzzz', 'xzzz', 'zxzz', 'zzxz', 'zzzx']
-        ops_l = [ops for ops in ops_l if ops not in m_dict.keys()]
         for ops in ops_l:
-            mnts_num = get_measurement(N_qubits, params, backend, args.backend, shots, ops)
-            m_dict[ops] = mnts_num
-            np.save(m_dict_path, m_dict)
+            mnts_num = m_dict[ops]
+            new_mnts_num = []
+            for mnt_num in mnts_num:
+                mnt_num.reverse()
+                new_mnts_num.append(mnt_num)
+            m_dict[ops] = new_mnts_num
+            np.save(new_m_dict_path, m_dict)
         print(f"This is E = X + {J}ZZ: ",get_exp_X(m_dict['xxxx'], 1)+J*get_exp_ZZ(m_dict['zzzz'],1))
         #NOW get covariance matrix
         cov_mat =  get_cov_mat(m_dict)
@@ -140,7 +100,7 @@ def main():
         HR_dist = distanceVecFromSubspace(orig_H, vec[:, :1])
         print("This is HR distance: ", HR_dist)
         HR_dist_hist.append(HR_dist)
-        with open('HR_dist_hist.pkl', 'wb') as f:
+        with open('fixed_HR_dist_hist.pkl', 'wb') as f:
             pickle.dump(HR_dist_hist, f)
     #NOW MAKE SOME PLOTS
     gst_E, gst_wf = get_GST_E_and_wf(get_Hamiltonian(args.n_qbts, J))
@@ -159,7 +119,7 @@ def main():
     ax2.scatter(VQE_steps, HR_dist_hist, c = 'r', alpha = 0.8, marker=".", label = "HR distance")
     ax2.set_ylabel("HR distance")
     ax2.legend(bbox_to_anchor=(1.28, 1.22), fontsize = 10)
-    plt.savefig("VQE_HR_plot.png", dpi = 300, bbox_inches='tight')
+    plt.savefig("VQE_HR_fixed_plot.png", dpi = 300, bbox_inches='tight')
     os.chdir(current_path)
 
 if __name__== '__main__':
