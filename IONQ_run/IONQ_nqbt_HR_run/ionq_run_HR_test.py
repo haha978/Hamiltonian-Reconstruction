@@ -5,6 +5,7 @@ from qiskit import QuantumCircuit, Aer
 from qiskit import transpile
 import numpy as np
 from utils import distanceVecFromSubspace, get_exp_cross, get_exp_X, get_exp_ZZ
+from utils import get_Hx, get_Hzz, get_Hamiltonian
 import os
 
 def expected_op(op, wf):
@@ -59,36 +60,6 @@ def get_HR_distance(hyperparam_dict, param_idx, params_dir_path, backend):
     orig_H = orig_H/np.linalg.norm(orig_H)
     HR_dist = distanceVecFromSubspace(orig_H, vec[:, :1])
     return HR_dist
-
-def get_Hx(N_qubits):
-    sig_x = np.array([[0., 1.], [1., 0.]])
-    Hx = 0
-    for i in range(N_qubits):
-        temp = [np.eye(2)]*N_qubits
-        temp[i] = sig_x
-        tempSum = temp[0]
-        for j in range(1, N_qubits):
-            tempSum = np.kron(tempSum, temp[j])
-        Hx += tempSum
-    return Hx
-
-def get_Hzz(N_qubits):
-    sig_z = np.array([[1., 0.], [0., -1.]])
-    Hz = 0
-    for i in range(N_qubits-1):
-        temp = [np.eye(2)]*N_qubits
-        temp[i] = sig_z
-        temp[(i+1)] = sig_z
-        tempSum = temp[0]
-        for j in range(1, N_qubits):
-            tempSum = np.kron(temp[j], tempSum)
-        Hz += tempSum
-    return Hz
-
-def get_Hamiltonian(N_qubits, J):
-    Hx = get_Hx(N_qubits)
-    Hz = get_Hzz(N_qubits)
-    return Hx + J*Hz
 
 def get_statevector(n_qbts, var_params, n_layers, backend):
     circ = Q_Circuit(n_qbts, var_params, [], n_layers)

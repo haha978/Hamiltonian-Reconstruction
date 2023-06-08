@@ -38,6 +38,40 @@ def get_num_mt(mt):
     mt_l.reverse()
     return mt_l
 
+def get_Hx(N_qubits):
+    sig_x = np.array([[0., 1.], [1., 0.]])
+    Hx = 0
+    for i in range(N_qubits):
+        temp = [np.eye(2)]*N_qubits
+        temp[i] = sig_x
+        tempSum = temp[0]
+        for j in range(1, N_qubits):
+            tempSum = np.kron(tempSum, temp[j])
+        Hx += tempSum
+    return Hx
+
+def get_Hzz(N_qubits):
+    sig_z = np.array([[1., 0.], [0., -1.]])
+    Hz = 0
+    for i in range(N_qubits-1):
+        temp = [np.eye(2)]*N_qubits
+        temp[i] = sig_z
+        temp[(i+1)] = sig_z
+        tempSum = temp[0]
+        for j in range(1, N_qubits):
+            tempSum = np.kron(temp[j], tempSum)
+        Hz += tempSum
+    return Hz
+
+def get_Hamiltonian(N_qubits, J):
+    Hx = get_Hx(N_qubits)
+    Hz = get_Hzz(N_qubits)
+    return Hx + J*Hz
+
+def get_fidelity(wf, mat):
+    fid = np.sqrt(np.matmul(np.conj(wf),np.matmul(mat, wf)))
+    return fid.real
+
 def distanceVecFromSubspace(w, A):
     """
     Get L2 norm of distance from w to subspace spanned by columns of A

@@ -13,10 +13,8 @@ import argparse
 import pickle
 import matplotlib.pyplot as plt
 import os
-from utils import distanceVecFromSubspace, get_exp_cross, get_exp_X, get_exp_ZZ
+from utils import distanceVecFromSubspace, get_exp_cross, get_exp_X, get_exp_ZZ, get_fidelity, get_Hamiltonian
 from ionq_run_HR import Q_Circuit
-
-HR_dist_hist = []
 
 def get_args(parser):
     parser.add_argument('--input_dir', type = str, help = "directory where HR_hyperparam_dict.npy, parameter directory, and measurement directory exists. HR distances and plots will be stored in this given path.")
@@ -24,6 +22,23 @@ def get_args(parser):
     parser.add_argument('--p2', type = float, help = "p2 depolarization value (overrides p2 value in HR_hyperparam_dict.npy)")
     args = parser.parse_args()
     return args
+
+def get_fid(hyperparam_dict, param_idx, params_dir_path, ground_state, backend):
+    var_params = get_params(params_dir_path, param_idx)
+    n_qbts = hyperparam_dict["n_qbts"]
+    circ = Q_Circuit(n_qbts, var_params, [], hyperparam_dict["n_layers"])
+    if hyperparam_dict['p1'] == 0 and hyperparam_dict['p2'] == 0:
+        circ.save_statevector()
+        result = backend.run(circ).result()
+        statevector = result.get_statevector(circ)
+        statevector = np.array(statevector)
+        fid = np.vdot(statevector, ground_state)
+    else:
+        circ.save_density_matrix()
+        result = backend.run(circ).result()
+        den_mat = result.data(0)['density_matrix']
+        fid = get_fidelity(ground_state, den_mat)
+    return fid.real
 
 def get_measurement(n_qbts, var_params, backend, h_l, hyperparam_dict, param_idx):
     num_shots = hyperparam_dict["shots"]
@@ -53,6 +68,16 @@ def get_noisy_E(hyperparam_dict, param_idx, params_dir_path, backend):
     E = get_exp_X(x_m, 1) + hyperparam_dict["J"]*get_exp_ZZ(z_m, 1)
     print("This is noisy energy: ", E)
     return E
+
+def get_gst(n_qbts, J):
+    Ham = get_Hamiltonian(n_qbts, J)
+    eigen_values, eigen_vectors = np.linalg.eig(Ham)
+    Ground_energy = np.amin(eigen_values)
+    index = np.argwhere(eigen_values == Ground_energy)[0][0]
+    #Obtain ground state's wavefunction
+    ground_wf = eigen_vectors[:, index]
+    ground_wf = (1./np.linalg.norm(ground_wf))*ground_wf
+    return ground_wf
 
 def main(args):
     HR_hyperparam_dict_path = os.path.join(args.input_dir, "HR_hyperparam_dict.npy")
@@ -92,7 +117,6 @@ def main(args):
     with open(os.path.join(args.input_dir, "HR_dist_hist.pkl"), "rb") as fp:
         HR_dist_hist = pickle.load(fp)
 
-    fid_hist = f"fid_hist_p1_{p1}_p2_{p2}.pkl"
     img_name = f"layers_shots_{shots}_shots_{backend}_p1_{p1}_p2_{p2}_noisy_E_HR_fid.svg"
 
     #calculate noisy_E_hist and save it
@@ -102,8 +126,31 @@ def main(args):
             pickle.dump(noisy_E_hist, fp)
 
     #calculate fidelity
-    #TODO
-    
+    #get_gst
+    gst_path = os.path.join(args.input_dir, "gst.npy")
+    if os.path.isfile(gst_path):
+        gst = np.load(gst_path, allow_pickle = True)
+    else:
+        gst = get_gst(n_qbts, J)
+        np.save(gst_path, gst)
+    #backend initialization for fidelity
+    if p1 == 0 and p2 == 0:
+        fid_backend = AerSimulator()
+    else:
+        noise_model = NoiseModel()
+        p1_error = depolarizing_error(hyperparam_dict["p1"], 1)
+        p2_error = depolarizing_error(hyperparam_dict["p2"], 2)
+        noise_model.add_all_qubit_quantum_error(p1_error, ['h','ry'])
+        noise_model.add_all_qubit_quantum_error(p2_error, ['cx'])
+        fid_backend = AerSimulator(method = 'density_matrix', noise_model = noise_model)
+
+    for param_idx in param_idx_l:
+        fid = get_fid(hyperparam_dict, param_idx, params_dir_path, gst, fid_backend)
+        print(f"{param_idx}th fidelity: ", fid)
+        fid_hist.append(fid)
+        with open(os.path.join(args.input_dir, f"fid_hist.pkl"), "wb") as fp:
+            pickle.dump(fid_hist, fp)
+
     #create plots
     fig, ax = plt.subplots()
     ax.scatter(param_idx_l, noisy_E_hist, c = 'b', alpha = 0.8, marker = ".", label = "Energy")
@@ -117,7 +164,7 @@ def main(args):
     plt.title(title, fontdict = {'fontsize' : 15})
     ax2 = ax.twinx()
     ax2.scatter(param_idx_l, HR_dist_hist, c = 'r', alpha = 0.8, marker=".", label = "HR distance")
-    # ax2.scatter(param_idx_l, fid_hist, c = 'g', alpha = 0.8, marker=".", label = "Fidelity")
+    ax2.scatter(param_idx_l, fid_hist, c = 'g', alpha = 0.8, marker=".", label = "Fidelity")
     ax2.set_ylabel("HR distance | Fidelity")
     ax2.legend(bbox_to_anchor=(1.28, 1.22), fontsize = 10)
     plt.savefig(args.input_dir+'/'+  str(n_qbts)+"qubits_"+ str(n_layers)+img_name, dpi = 300, bbox_inches='tight')
