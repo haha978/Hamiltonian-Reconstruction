@@ -1,0 +1,12 @@
+
+FIG 2c description
+
+(command: jm2239@qbrain:~/J1-J2/depolarization_shot_noise$ python HR_J1_J2.py --input_dir 3x2_J1_J2 --shots 10000 --backend ionq.qpu --param_idx_l --p1 0.0065 --p2 0.0398)
+
+
+- 3x2 J1-J2 VQE is done with no depolarization noise, with 10,000 shots.
+- We use the parameters from VQE to do the following
+ 1) we chose some list of parameters from the VQE. We decided not to use all the parameters, as we need to run the experiment in an actual hardware. 
+ 2) HR distance and Energy is measured with depolarization noise and with 10,000 shots, using the chosen list of parameters. IONQ Harmony's 1 and 2 qubit gate fidelities (0.0065 and 0.0398) are used as the p1 and p2 values for the depolarization noise.
+ 3) Fidelity is measured with depolarization noise.
+ 4) BOTH HR distance and Energy will be measured in the actual IONQ hardware in the future.

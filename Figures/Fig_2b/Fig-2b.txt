@@ -1,0 +1,7 @@
+Fig 2b description
+
+11 qubits 1-D TFIM VQE simulations ran with 10,000 shots and no depolarization noise.
+With list of parameters obtained from VQE, we do the following.
+1) From simulations, Energy and HR distance are measured with 4000 shots and now with the depolarization noise. The p1 and p2 values are set as the IONQ Harmony's approx. 1 and 2 qubit gate fidelities (p1 = 0.0065 and p2 = 0.0398)
+
+2) From simulations, Fidelities are measured only with depolarization noise, using density matrix simulation.(p1 = 0.0065 and p2 = 0.0398).

@@ -1,0 +1,6 @@
+
+FIG 2d description
+- 3x2 J1-J2 VQE is done with no depolarization noise, with 10,000 shots.
+- We use the parameters from VQE to do the following
+ 1) HR distance and Energy is measured with depolarization noise and with 10,000 shots, using the list of parameters from VQE. IONQ Harmony's 1 and 2 qubit gate fidelities (0.0065 and 0.0398) are used as the p1 and p2 values for the depolarization noise.
+ 3) Fidelity is measured with depolarization noise only.

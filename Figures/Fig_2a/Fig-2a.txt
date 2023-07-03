@@ -1,0 +1,6 @@
+Fig 2a description
+
+11 qubits 1-D TFIM VQE simulations ran with 10,000 shots and no depolarization noise.
+With list of parameters obtained from VQE, we first SAMPLE some parameters (due to limited budget) and do the following.
+1) For each sampled parameters, Energy and HR distance are measured with 4000 shots using 11 qubit IONQ Harmony
+2) For each sampled parameters, Fidelities are measured only with the depolarization noise, using density matrix simulation.(p1 = 0.0065 and p2 = 0.0398).
