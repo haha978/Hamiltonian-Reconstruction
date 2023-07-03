@@ -37,7 +37,7 @@ def make_avg_plot():
     and sets the average HR distances as
     (5+5+6+6)/4, (5+6+6+7)/4, (6+6+7+7)/4, (6+7+7+8)/4
     """
-    avg_num = 1
+    avg_num = 2
     HR_dist_hist = load_l("HR_dist_hist.pkl")
     E_hist = load_l("noisy_E_hist.pkl")
     fid_hist = load_l("fid_hist.pkl")
