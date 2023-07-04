@@ -1,5 +1,4 @@
 import sys
-sys.path.insert(0, "../")
 import qiskit
 from qiskit import QuantumCircuit, Aer
 from qiskit_aer.noise import NoiseModel, depolarizing_error
@@ -10,7 +9,7 @@ from azure.quantum.qiskit import AzureQuantumProvider
 from qiskit import transpile
 import numpy as np
 import argparse
-from utils import distanceVecFromSubspace, get_exp_cross, get_exp_X, get_exp_ZZ
+from utils_periodic import distanceVecFromSubspace, get_exp_cross, get_exp_X, get_exp_ZZ
 import pickle
 import matplotlib.pyplot as plt
 import os
@@ -30,21 +29,20 @@ def get_args(parser):
     return args
 
 def Q_Circuit(N_qubits, var_params, h_l, n_layers):
-    def Q_Circuit(N_qubits, var_params, h_l):
-        circ = QuantumCircuit(N_qubits, N_qubits)
-        param_idx = 0
-        for i in range(N_qubits):
-            circ.h(i)
-        for layer in range(n_layers):
-            for j in range(layer%2, N_qubits, 2):
-                circ.cx(j%N_qubits, (j+1)%N_qubits)
-                circ.ry(var_params[param_idx], j%N_qubits)
-                param_idx += 1
-                circ.ry(var_params[param_idx], (j+1)%N_qubits)
-                param_idx += 1
-        for h_idx in h_l:
-            circ.h(h_idx)
-        return circ
+    circ = QuantumCircuit(N_qubits, N_qubits)
+    param_idx = 0
+    for i in range(N_qubits):
+        circ.h(i)
+    for layer in range(n_layers):
+        for j in range(layer%2, N_qubits, 2):
+            circ.cx(j%N_qubits, (j+1)%N_qubits)
+            circ.ry(var_params[param_idx], j%N_qubits)
+            param_idx += 1
+            circ.ry(var_params[param_idx], (j+1)%N_qubits)
+            param_idx += 1
+    for h_idx in h_l:
+        circ.h(h_idx)
+    return circ
 
 def get_measurement(n_qbts, var_params, backend, h_l, hyperparam_dict, param_idx):
     measurement_path = os.path.join(args.input_dir, "measurement", f"{param_idx}th_param_{''.join([str(e) for e in h_l])}qbt_h_gate.npy")
@@ -80,7 +78,7 @@ def get_HR_distance(hyperparam_dict, param_idx, params_dir_path, backend):
     cov_mat[0, 0] =  get_exp_X(x_m, 2) - exp_X**2
     cov_mat[1, 1] = get_exp_ZZ(z_m, 2) - exp_ZZ**2
     cross_val = 0
-    z_indices = [[i, i+1] for i in range(n_qbts) if i != (n_qbts-1)]
+    z_indices = [[i%n_qbts, (i+1)%n_qbts] for i in range(n_qbts)]
     for h_idx in range(n_qbts):
         h_l = [h_idx]
         cross_m = get_measurement(n_qbts, var_params, backend, h_l, hyperparam_dict, param_idx)
