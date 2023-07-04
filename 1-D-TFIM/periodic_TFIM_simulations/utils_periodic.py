@@ -25,9 +25,10 @@ def get_exp_ZZ(z_m, expo):
     tot_val, tot_count = 0, 0
     for z_mt, m_count in z_m.items():
         z_mt = get_num_mt(z_mt)
+        n_qbts = len(z_mt)
         sum_zz = 0
-        for i in range(len(z_mt) - 1):
-            sum_zz += z_mt[i]*z_mt[(i+1)]
+        for i in range(n_qbts):
+            sum_zz += z_mt[i%n_qbts]*z_mt[(i+1)%n_qbts]
         tot_val += ((sum_zz**expo) * m_count)
         tot_count += m_count
     exp_val = tot_val / tot_count
@@ -53,10 +54,10 @@ def get_Hx(N_qubits):
 def get_Hzz(N_qubits):
     sig_z = np.array([[1., 0.], [0., -1.]])
     Hz = 0
-    for i in range(N_qubits-1):
+    for i in range(N_qubits):
         temp = [np.eye(2)]*N_qubits
         temp[i] = sig_z
-        temp[(i+1)] = sig_z
+        temp[(i+1)%N_qubits] = sig_z
         tempSum = temp[0]
         for j in range(1, N_qubits):
             tempSum = np.kron(temp[j], tempSum)

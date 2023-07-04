@@ -30,41 +30,21 @@ def get_args(parser):
     return args
 
 def Q_Circuit(N_qubits, var_params, h_l, n_layers):
-    circ = QuantumCircuit(N_qubits, N_qubits)
-    param_idx = 0
-    for i in range(N_qubits):
-        circ.h(i)
-    if N_qubits % 2 == 0:
+    def Q_Circuit(N_qubits, var_params, h_l):
+        circ = QuantumCircuit(N_qubits, N_qubits)
+        param_idx = 0
+        for i in range(N_qubits):
+            circ.h(i)
         for layer in range(n_layers):
-            if layer % 2 == 0:
-                for i in range(0, N_qubits, 2):
-                    circ.cx(i, i+1)
-                for i in range(N_qubits):
-                    circ.ry(var_params[param_idx], i)
-                    param_idx += 1
-            else:
-                for i in range(1, N_qubits-1, 2):
-                    circ.cx(i, i+1)
-                for i in range(1, N_qubits-1):
-                    circ.ry(var_params[param_idx], i)
-                    param_idx += 1
-    else:
-        for layer in range(n_layers):
-            if layer % 2 == 0:
-                for i in range(0, N_qubits-1, 2):
-                    circ.cx(i, i+1)
-                for i in range(N_qubits-1):
-                    circ.ry(var_params[param_idx], i)
-                    param_idx += 1
-            else:
-                for i in range(1, N_qubits, 2):
-                    circ.cx(i, i+1)
-                for i in range(1, N_qubits):
-                    circ.ry(var_params[param_idx], i)
-                    param_idx += 1
-    for h_idx in h_l:
-        circ.h(h_idx)
-    return circ
+            for j in range(layer%2, N_qubits, 2):
+                circ.cx(j%N_qubits, (j+1)%N_qubits)
+                circ.ry(var_params[param_idx], j%N_qubits)
+                param_idx += 1
+                circ.ry(var_params[param_idx], (j+1)%N_qubits)
+                param_idx += 1
+        for h_idx in h_l:
+            circ.h(h_idx)
+        return circ
 
 def get_measurement(n_qbts, var_params, backend, h_l, hyperparam_dict, param_idx):
     measurement_path = os.path.join(args.input_dir, "measurement", f"{param_idx}th_param_{''.join([str(e) for e in h_l])}qbt_h_gate.npy")
@@ -206,6 +186,6 @@ def main(args):
     plt.savefig(args.input_dir+'/'+  str(n_qbts)+"qubits_"+ str(n_layers)+f"layers_shots_{shots}_HR_dist.png", dpi = 300, bbox_inches='tight')
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = "HR for 1-D TFIM with non-periodic boundary condition")
+    parser = argparse.ArgumentParser(description = "HR for 1-D TFIM with periodic boundary condition")
     args = get_args(parser)
     main(args)

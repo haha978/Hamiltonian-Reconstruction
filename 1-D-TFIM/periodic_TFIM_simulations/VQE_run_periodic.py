@@ -36,34 +36,13 @@ def Q_Circuit(N_qubits, var_params, h_l):
     param_idx = 0
     for i in range(N_qubits):
         circ.h(i)
-    if N_qubits % 2 == 0:
-        for layer in range(args.n_layers):
-            if layer % 2 == 0:
-                for i in range(0, N_qubits, 2):
-                    circ.cx(i, i+1)
-                for i in range(N_qubits):
-                    circ.ry(var_params[param_idx], i)
-                    param_idx += 1
-            else:
-                for i in range(1, N_qubits-1, 2):
-                    circ.cx(i, i+1)
-                for i in range(1, N_qubits-1):
-                    circ.ry(var_params[param_idx], i)
-                    param_idx += 1
-    else:
-        for layer in range(args.n_layers):
-            if layer % 2 == 0:
-                for i in range(0, N_qubits-1, 2):
-                    circ.cx(i, i+1)
-                for i in range(N_qubits-1):
-                    circ.ry(var_params[param_idx], i)
-                    param_idx += 1
-            else:
-                for i in range(1, N_qubits, 2):
-                    circ.cx(i, i+1)
-                for i in range(1, N_qubits):
-                    circ.ry(var_params[param_idx], i)
-                    param_idx += 1
+    for layer in range(args.n_layers):
+        for j in range(layer%2, N_qubits, 2):
+            circ.cx(j%N_qubits, (j+1)%N_qubits)
+            circ.ry(var_params[param_idx], j%N_qubits)
+            param_idx += 1
+            circ.ry(var_params[param_idx], (j+1)%N_qubits)
+            param_idx += 1
     for h_idx in h_l:
         circ.h(h_idx)
     return circ
@@ -93,19 +72,11 @@ def get_E(var_params, n_qbts, shots, J, backend):
     return E
 
 def main(args):
+    assert args.n_qbts % 2 == 0, "only supports even number of qubits"
     if not os.path.exists(os.path.join(args.output_dir,"params_dir")):
         os.makedirs(os.path.join(args.output_dir,"params_dir"))
 
-    Nparams = 0
-    if args.n_qbts % 2 == 0:
-        for i in range(args.n_layers):
-            if i % 2 == 0:
-                Nparams += args.n_qbts
-            else:
-                Nparams += (args.n_qbts - 2)
-    else:
-        for i in range(args.n_layers):
-            Nparams += (args.n_qbts - 1)
+    Nparams = args.n_layers * args.n_qbts
 
     if args.init_param == "NONE":
         var_params = np.random.uniform(low = -np.pi, high = np.pi, size = Nparams)
@@ -117,7 +88,7 @@ def main(args):
     bounds = np.tile(np.array([-np.pi, np.pi]), (Nparams,1))
 
     try:
-        dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        dir_path = os.path.dirname(os.path.realpath(__file__))
         gst_E = np.load(os.path.join(dir_path, f"gst_E_dict_J_{args.J}_periodic.npy"), allow_pickle = True).item()[args.n_qbts]
     except:
         raise ValueError(f"no corresponding index to ground state energy J value to {args.n_qbts} qubits")
@@ -159,6 +130,6 @@ def main(args):
     np.save(os.path.join(args.output_dir, "VQE_hyperparam_dict.npy"), hyperparam_dict)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = "VQE for 1-D TFIM with non-periodic boundary condition")
+    parser = argparse.ArgumentParser(description = "VQE for 1-D TFIM with periodic boundary condition")
     args = get_args(parser)
     main(args)
