@@ -35,10 +35,11 @@ def get_args(parser):
     parser.add_argument('--input_dir', type = str, help = "directory where HR_hyperparam_dict.npy, parameter directory, and measurement directory exists. HR distances and plots will be stored in this given path.")
     parser.add_argument('--p1', type = float, help = "p1 depolarization value (overrides p1 value in HR_hyperparam_dict.npy)")
     parser.add_argument('--p2', type = float, help = "p2 depolarization value (overrides p2 value in HR_hyperparam_dict.npy)")
+    parser.add_argument('--get_first_excited_state', action = 'store_true', help = "get fidelity with the first excited state as well")
     args = parser.parse_args()
     return args
 
-def get_fid(hyperparam_dict, param_idx, params_dir_path, ground_state, backend):
+def get_fid(hyperparam_dict, param_idx, params_dir_path, target_state, backend):
     var_params = get_params(params_dir_path, param_idx)
     n_qbts = hyperparam_dict["n_qbts"]
     circ = Q_Circuit(n_qbts, var_params, [], hyperparam_dict["n_layers"])
@@ -47,12 +48,12 @@ def get_fid(hyperparam_dict, param_idx, params_dir_path, ground_state, backend):
         result = backend.run(circ).result()
         statevector = result.get_statevector(circ)
         statevector = np.array(statevector)
-        fid = np.absolute(np.vdot(statevector, ground_state))
+        fid = np.absolute(np.vdot(statevector, target_state))
     else:
         circ.save_density_matrix()
         result = backend.run(circ).result()
         den_mat = result.data(0)['density_matrix']
-        fid = get_fidelity(ground_state, den_mat)
+        fid = get_fidelity(target_state, den_mat)
     return fid.real
 
 def get_measurement(n_qbts, var_params, backend, h_l, hyperparam_dict, param_idx):
@@ -84,15 +85,19 @@ def get_noisy_E(hyperparam_dict, param_idx, params_dir_path, backend):
     print("This is noisy energy: ", E)
     return E
 
-def get_gst(n_qbts, J):
-    Ham = get_Hamiltonian(n_qbts, J)
-    eigen_values, eigen_vectors = np.linalg.eig(Ham)
+def get_gst(eigen_values, eigen_vectors):
     Ground_energy = np.amin(eigen_values)
     index = np.argwhere(eigen_values == Ground_energy)[0][0]
     #Obtain ground state's wavefunction
     ground_wf = eigen_vectors[:, index]
     ground_wf = (1./np.linalg.norm(ground_wf))*ground_wf
     return ground_wf
+
+def get_first_excited_state(eigen_values, eigen_vectors):
+    indices = np.argsort(eigen_values)
+    excited_wf = eigen_vectors[:, indices[1]]
+    excited_wf = (1./np.linalg.norm(excited_wf))*excited_wf
+    return excited_wf
 
 def main(args):
     HR_hyperparam_dict_path = os.path.join(args.input_dir, "HR_hyperparam_dict.npy")
@@ -145,9 +150,20 @@ def main(args):
     gst_path = os.path.join(args.input_dir, "gst.npy")
     if os.path.isfile(gst_path):
         gst = np.load(gst_path, allow_pickle = True)
+        if args.get_first_excited_state:
+            Ham = get_Hamiltonian(n_qbts, J)
+            eigen_values, eigen_vectors = np.linalg.eig(Ham)
+            fst_path = os.path.join(args.input_dir, "fst.npy")
+            fst = get_first_excited_state(eigen_values, eigen_vectors)
     else:
-        gst = get_gst(n_qbts, J)
+        Ham = get_Hamiltonian(n_qbts, J)
+        eigen_values, eigen_vectors = np.linalg.eig(Ham)
+        gst = get_gst(eigen_values, eigen_vectors)
+        if args.get_first_excited_state:
+            fst_path = os.path.join(args.input_dir, "fst.npy")
+            fst = get_first_excited_state(eigen_values, eigen_vectors)
         np.save(gst_path, gst)
+
     #backend initialization for fidelity
     if p1 == 0 and p2 == 0:
         fid_backend = AerSimulator()
@@ -161,10 +177,19 @@ def main(args):
 
     for param_idx in param_idx_l:
         fid = get_fid(hyperparam_dict, param_idx, params_dir_path, gst, fid_backend)
-        print(f"{param_idx}th fidelity: ", fid)
+        print(f"{param_idx}th fidelity (gst): ", fid)
         fid_hist.append(fid)
         with open(os.path.join(args.input_dir, f"fid_hist.pkl"), "wb") as fp:
             pickle.dump(fid_hist, fp)
+
+    if args.get_first_excited_state:
+        fst_fid_hist = []
+        for param_idx in param_idx_l:
+            fst_fid = get_fid(hyperparam_dict, param_idx, params_dir_path, fst, fid_backend)
+            print(f"{param_idx}th fidelity (fst): ", fst_fid)
+            fst_fid_hist.append(fst_fid)
+            with open(os.path.join(args.input_dir, f"fst_fid_hist.pkl"), "wb") as fp:
+                pickle.dump(fst_fid_hist, fp)
 
     #create plots
     fig, ax = plt.subplots()
@@ -179,10 +204,16 @@ def main(args):
     plt.title(title, fontdict = {'fontsize' : 15})
     ax2 = ax.twinx()
     ax2.scatter(param_idx_l, HR_dist_hist, c = 'r', alpha = 0.8, marker=".", label = "HR distance")
-    ax2.scatter(param_idx_l, fid_hist, c = 'g', alpha = 0.8, marker=".", label = "Fidelity")
-    ax2.set_ylabel("HR distance | Fidelity")
+    ax2.scatter(param_idx_l, fid_hist, c = 'g', alpha = 0.8, marker=".", label = "Fidelity (gst)")
+    if args.get_first_excited_state:
+        ax2.scatter(param_idx_l, fst_fid_hist, c = 'c', alpha = 0.8, marker=".", label = "Fidelity (fst)")
+
+    ax2.set_ylabel("HR distance | Fidelity (gst) | Fidelity (fst)")
     ax2.legend(bbox_to_anchor=(1.28, 1.22), fontsize = 10)
-    plt.savefig(args.input_dir+'/'+  str(n_qbts)+"qubits_"+ str(n_layers)+img_name, dpi = 300, bbox_inches='tight')
+    if args.get_first_excited_state:
+        plt.savefig(args.input_dir+'/'+  str(n_qbts)+"qubits_"+ str(n_layers)+"_fst_excited_state_"+img_name, dpi = 300, bbox_inches='tight')
+    else:
+        plt.savefig(args.input_dir+'/'+  str(n_qbts)+"qubits_"+ str(n_layers)+img_name, dpi = 300, bbox_inches='tight')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = "HR for 2-D J1-J2 model")

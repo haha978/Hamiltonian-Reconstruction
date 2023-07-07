@@ -74,13 +74,14 @@ def main(args):
     J = args.J
     periodic = args.periodic
     J = float(J)
-    for i in range(3, max_n_qbts):
+    for i in range(10, max_n_qbts):
         n_qbts = i+1
         if periodic:
             Ham = get_Hamiltonian_periodic(n_qbts, J)
         else:
             Ham = get_Hamiltonian_no_periodic(n_qbts, J)
         eig_vals, _ = np.linalg.eig(Ham)
+        breakpoint()
         ground_energy = np.amin(eig_vals)
         gst_E_dict[n_qbts] = ground_energy.real
         if periodic:
