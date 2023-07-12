@@ -120,7 +120,7 @@ def main():
         #SUBSPACE IS 6 DIMENSIONAL
         print("These are varainces of Q matrix", hr_variances)
         dist = distanceVecFromSubspace(true_ham_vec, hr_eig_vecs[:, :args.num_eig])
-        fidelity = 100*get_fidelity(true_gnd_wf, state_f)**2
+        fidelity = get_fidelity(true_gnd_wf, state_f)
         energy = expected_op(Ham, state_f).real
         print("This is HR distance: ", dist)
         print("This is fidelity: ", fidelity)
@@ -135,51 +135,37 @@ def main():
     #NOW START PLOTTING
     colors = [[random.uniform(0, 1),random.uniform(0, 1),col] for col in np.linspace(0, 1, len(entries))]
     plt.figure(figsize=(10, 10), dpi=300)
-    plt.grid()
+    # plt.grid()
     fig, ax = plt.subplots()
-    for i, dist in enumerate(dists):
-        fidelity = fidelities[i]
-        ax.scatter(fidelity, dist, c= [colors[i]], s=15**2, marker=".")
     hr_variances, hr_eig_vecs,  = diagonalize(cov_mat(operators, true_gnd_wf))
     gst_dist = distanceVecFromSubspace(true_ham_vec, hr_eig_vecs[:, :args.num_eig])
     if args.gpu >=0:
         gst_dist = gst_dist.get()
-        FID = 100*get_fidelity(true_gnd_wf, true_gnd_wf).get()**2
+        FID = get_fidelity(true_gnd_wf, true_gnd_wf).get()**2
     else:
-        FID = 100*get_fidelity(true_gnd_wf, true_gnd_wf)**2
-    ax.scatter(FID, gst_dist, s=15**2, marker="*", color = 'red', label = "ground state")
+        FID = get_fidelity(true_gnd_wf, true_gnd_wf)**2
+
+    dists = np.array(dists)
+    fidelities = np.array(fidelities)
+    corr = np.corrcoef(dists, fidelities)
+    print("This is correlation: ", corr[0, 1])
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Times New Roman'] + plt.rcParams['font.sans-serif']
+
     last_path = os.path.normpath(LOAD_DIR)
     load_dir = os.path.basename(last_path)
-
-    #get noise kind and value
-    plt.title(title +'\n' + 'number of eigenvectors: '+str(args.num_eig) + \
-                    '\n' + 'operators: '+ args.ops + '\n' + 'J: '+str(VQE_init_props["J"]) +'\n' + 'Ground Energy = ' + str(round(GST_E, 4)), fontsize = 25)
-    ax.legend(loc='lower left', fontsize = 15)
+    ax.scatter(fidelities, dists, c = "b", s = 18**2, marker = ".")
+    ax.scatter(FID, gst_dist, s=22**2, marker="*", color = 'red', label = "ground state")
+    plt.xlabel('Fidelity', fontsize = 22)
+    plt.xticks(fontsize = 22)
+    plt.ylabel('HR distance', fontsize = 22)
+    plt.yticks(fontsize = 22)
+    plt.locator_params(axis='x', nbins=6)
+    plt.locator_params(axis='y', nbins=6)
+    plt.xlim(0.799, 1.01)
+    plt.ylim(-0.05, 1.05)
     fig.autofmt_xdate()
-    plt.xlabel('Fidelity (%)', fontsize = 30)
-    plt.xticks(fontsize=25)
-    plt.ylabel('HR distance', fontsize = 30)
-    plt.yticks(fontsize=25)
-    plt.savefig(args.save_dir+'/'+ load_dir+"_fid_"+args.ops+"_"+ str(args.num_eig)+"_.png", dpi = 300, bbox_inches='tight')
-
-    plt.figure(figsize=(10, 10), dpi=300)
-    plt.grid()
-    fig, ax = plt.subplots()
-    for i, dist in enumerate(dists):
-        energy = energies[i]
-        if args.gpu >= 0:
-            energy = energy.get()
-        ax.scatter(energy, dist, c= [colors[i]], s=15**2, marker=".")
-    ax.scatter(GST_E, gst_dist, s=15**2, marker="*", color ='red', label = "ground state")
-    plt.title(title +'\n'+ 'number of eigenvectors: '+str(args.num_eig) + \
-                    '\n' + 'operators: '+ args.ops + '\n' + 'J: '+str(VQE_init_props["J"]) +'\n' + 'Ground Energy = ' + str(round(GST_E, 4)), fontsize = 25)
-    ax.legend(loc='lower right', fontsize = 15)
-    plt.xlabel('Energy[eV]', fontsize = 30)
-    fig.autofmt_xdate()
-    plt.xticks(fontsize=25)
-    plt.ylabel('HR distance', fontsize = 30)
-    plt.yticks(fontsize=25)
-    plt.savefig(args.save_dir+'/'+load_dir+"_E_"+args.ops+"_"+ str(args.num_eig) +"_.png", dpi = 300, bbox_inches='tight')
+    plt.savefig(args.save_dir+'/'+ load_dir+"_fid_"+args.ops+"_"+ str(args.num_eig)+"_.svg", dpi = 300, bbox_inches='tight')
 
 if __name__ == '__main__':
     main()

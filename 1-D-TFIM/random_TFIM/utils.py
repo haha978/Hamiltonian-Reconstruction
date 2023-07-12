@@ -119,7 +119,7 @@ def get_fidelity(wf1, wf2):
         OP_i (np 2d array): Operator's matrix representation
 
     """
-    fid = np.matmul(np.conj(wf1), wf2)
+    fid = np.matmul(np.conj(wf1), wf2)**2
     return fid.real
 
 def distanceVecFromSubspace(w, A):

@@ -32,19 +32,19 @@ def make_plot():
     HR_dist_hist_ionq_avg = get_hist_avg(avg_num, HR_dist_hist_ionq)
     fid_hist_dep_avg = get_hist_avg(avg_num, fid_hist_dep)
 
-    plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Times New Roman'] + plt.rcParams['font.sans-serif']
     fig, ax = plt.subplots()
-    ax = ax.twinx()
     ax.scatter(param_idx_l, HR_dist_hist_dep, alpha = 0.1, c = "#D55E00", s = 20, marker=".")
     ax.scatter(param_idx_l_avg, HR_dist_hist_dep_avg, alpha = 1, c = "#D55E00", s = 20, marker=".", label = "HR distance (dep)")
     ax.scatter(param_idx_l, HR_dist_hist_ionq, alpha = 0.1, c = "#F0E442", s = 20, marker=".")
     ax.scatter(param_idx_l_avg, HR_dist_hist_ionq_avg, alpha = 1, c = "#F0E442", s = 20, marker=".", label = "HR distance (ionq)")
     ax.scatter(param_idx_l_avg, fid_hist_dep_avg, c = '#CC79A7', alpha = 1, marker=".", label = "Fidelity (dep)")
-
-    ax.set_ylabel("HR distance | Fidelity", fontsize = 12)
-    ax.legend(bbox_to_anchor=(1.5, 1.14), fontsize = 12)
-    plt.savefig("plot_2a_fid_HR.svg", dpi = 300, bbox_inches='tight')
+    ax.tick_params(axis='x', labelsize=14)
+    ax.tick_params(axis='y', labelsize=14)
+    ax.set_ylabel("HR distance | Fidelity", fontsize = 14)
+    ax.legend(bbox_to_anchor=(1.6, 1.14), fontsize = 14)
+    plt.savefig(f"plot_2a_fid_HR_{avg_num}.svg", dpi = 300, bbox_inches='tight')
 
 def get_hist_avg(avg_num, hist):
     hist_avg = []

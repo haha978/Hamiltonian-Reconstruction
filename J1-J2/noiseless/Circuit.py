@@ -59,22 +59,17 @@ def get_nn_dict(m, n):
         dict_idx += 1
     return nn_dict
 
-def HVA(circ, m, n, var_params, n_layers):
+def YY(circ, m, n, var_params, n_layers):
     #NEED SOME CODE HERE
     param_idx = 0
     N_qubits = m * n
-    nn_dict = get_nn_dict(m, n)
     for i in range(N_qubits):
         circ.h(i)
-    for _ in range(n_layers):
+    for lyr in range(n_layers):
         for i in range(N_qubits):
-            circ.rx(var_params[param_idx], i)
-            param_idx += 1
-        for k in nn_dict:
-            for nn in nn_dict[k]:
-                q1, q2 = nn
-                circ.rzz(var_params[param_idx], q1, q2)
-                param_idx += 1
+            circ.cx(i, (i+1)%N_qubits)
+            circ.ry(var_params[param_idx], (i+1)%N_qubits)
+            circ.cx(i, (i+1)%N_qubits)
     return circ
 
 def Q_Circuit(m, n, var_params, n_layers, ansatz_type):
@@ -83,7 +78,7 @@ def Q_Circuit(m, n, var_params, n_layers, ansatz_type):
     if ansatz_type == "ALA":
         N_qubits = m*n
         return ALA(circ, N_qubits, var_params, n_layers)
-    elif ansatz_type == "HVA":
-        return HVA(circ, m, n, var_params, n_layers)
+    elif ansatz_type == "YY":
+        return YY(circ, m, n, var_params, n_layers)
     else:
         raise ValueError("No available ansatz")

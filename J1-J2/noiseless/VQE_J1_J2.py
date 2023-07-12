@@ -65,8 +65,8 @@ def main(args):
         else:
             for i in range(args.n_layers):
                 Nparams += (n_qbts - 1)
-    elif args.ansatz_type == "HVA":
-        Nparams = args.n_layers * (n_qbts + len(get_nearest_neighbors(args.m, args.n)))
+    elif args.ansatz_type == "YY":
+        Nparams = args.n_layers * n_qbts
     else:
         raise ValueError("please type the correct ansatz type")
 

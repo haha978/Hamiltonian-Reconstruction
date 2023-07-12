@@ -48,7 +48,7 @@ def get_fid(hyperparam_dict, param_idx, params_dir_path, target_state, backend):
         result = backend.run(circ).result()
         statevector = result.get_statevector(circ)
         statevector = np.array(statevector)
-        fid = np.absolute(np.vdot(statevector, target_state))
+        fid = np.square(np.absolute(np.vdot(statevector, target_state)))
     else:
         circ.save_density_matrix()
         result = backend.run(circ).result()

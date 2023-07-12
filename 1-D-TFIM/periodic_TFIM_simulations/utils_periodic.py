@@ -70,7 +70,7 @@ def get_Hamiltonian(N_qubits, J):
     return Hx + J*Hz
 
 def get_fidelity(wf, mat):
-    fid = np.sqrt(np.matmul(np.conj(wf),np.matmul(mat, wf)))
+    fid = np.matmul(np.conj(wf),np.matmul(mat, wf))
     return fid.real
 
 def distanceVecFromSubspace(w, A):
