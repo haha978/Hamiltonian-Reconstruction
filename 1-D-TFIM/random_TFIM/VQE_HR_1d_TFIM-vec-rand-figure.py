@@ -141,9 +141,9 @@ def main():
     gst_dist = distanceVecFromSubspace(true_ham_vec, hr_eig_vecs[:, :args.num_eig])
     if args.gpu >=0:
         gst_dist = gst_dist.get()
-        FID = get_fidelity(true_gnd_wf, true_gnd_wf).get()**2
+        FID = get_fidelity(true_gnd_wf, true_gnd_wf).get()
     else:
-        FID = get_fidelity(true_gnd_wf, true_gnd_wf)**2
+        FID = get_fidelity(true_gnd_wf, true_gnd_wf)
 
     dists = np.array(dists)
     fidelities = np.array(fidelities)

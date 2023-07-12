@@ -249,7 +249,7 @@ def cov_mat(ops_l, wf):
     Q = np.zeros((ops_n, ops_n), dtype=float)
     for i1 in range(ops_n):
         for i2 in range(i1, ops_n):
-            O1_O2 = expected_op(np.matmul(ops_l[i1], ops_l[i2]), wf)
+            O1_O2 = 1/2 * (expected_op(np.matmul(ops_l[i1], ops_l[i2]), wf) + expected_op(np.matmul(ops_l[i2], ops_l[i1]), wf)) 
             O1 = expected_op(ops_l[i1], wf)
             O2 = expected_op(ops_l[i2], wf)
             Q[i1, i2] = O1_O2 - O1*O2
