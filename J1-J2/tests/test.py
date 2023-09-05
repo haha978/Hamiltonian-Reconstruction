@@ -9,6 +9,7 @@ from shot_noise.Circuit import Q_Circuit as Q_Circuit_noise
 from noiseless.utils import get_Hx, expected_op1_op2, expected_op, create_partial_Hamiltonian
 from noiseless.HR_J1_J2 import get_params, get_operations_l
 from noiseless.HR_J1_J2 import get_HR_distance as get_HR_distance_noiseless
+from noiseless.HR_J1_J2 import get_variance as get_variance_noiseless
 from shot_noise.HR_J1_J2 import get_measurement_index_l
 from shot_noise.utils import expectation_X, get_NN_coupling, get_nNN_coupling, get_exp_cross
 from shot_noise.utils import flatten_neighbor_l, get_nearest_neighbors, get_next_nearest_neighbors
@@ -40,6 +41,45 @@ def get_measurement(n_qbts, var_params, backend, h_l, hyperparam_dict, param_idx
     result = job.result()
     measurement = dict(result.get_counts())
     return measurement
+
+def get_variance(hyperparam_dict, param_idx, params_dir_path, backend):
+    m, n = hyperparam_dict["m"],  hyperparam_dict["n"]
+    n_qbts = m * n
+    z_l, x_l = [], [i for i in range(n_qbts)]
+    var_params = get_params(params_dir_path, param_idx)
+    z_m = get_measurement(n_qbts, var_params, backend, z_l, hyperparam_dict, param_idx)
+    x_m = get_measurement(n_qbts, var_params, backend, x_l, hyperparam_dict, param_idx)
+    exp_X, exp_NN, exp_nNN = expectation_X(x_m, 1), get_NN_coupling(z_m, m, n, 1), get_nNN_coupling(z_m, m, n, 1)
+
+    exp_H_j1j2 = exp_X + hyperparam_dict["J1"] * exp_NN + hyperparam_dict["J2"] * exp_nNN
+    #diagonal terms
+    exp_H_j1j2_2 = expectation_X(x_m, 2) + (hyperparam_dict["J1"]**2)*get_NN_coupling(z_m, m, n, 2) + \
+                                (hyperparam_dict["J2"]**2)*get_nNN_coupling(z_m, m, n, 2)
+
+    #cross terms
+    NN_index_l = flatten_neighbor_l(get_nearest_neighbors(m, n), m, n)
+    nNN_index_l = flatten_neighbor_l(get_next_nearest_neighbors(m, n), m, n)
+    NN_nNN_val, X_NN_val, X_nNN_val  = 0, 0, 0
+
+    for NN_indices in NN_index_l:
+        for nNN_indices in nNN_index_l:
+            indices = NN_indices + nNN_indices
+            NN_nNN_val += get_exp_cross(z_m, indices)
+
+    for h_idx in range(n_qbts):
+        h_l = [h_idx]
+        cross_m = get_measurement(n_qbts, var_params, backend, h_l, hyperparam_dict, param_idx)
+        X_NN_index_l = get_measurement_index_l(h_idx, NN_index_l)
+        X_nNN_index_l = get_measurement_index_l(h_idx, nNN_index_l)
+        for indices in X_NN_index_l:
+            X_NN_val += get_exp_cross(cross_m, indices)
+        for indices in X_nNN_index_l:
+            X_nNN_val += get_exp_cross(cross_m, indices)
+    J1, J2 = hyperparam_dict["J1"], hyperparam_dict["J2"]
+    exp_H_j1j2_2 += 2*(J1*J2*NN_nNN_val + J1*X_NN_val + J2*X_nNN_val)
+    var_H = exp_H_j1j2_2 - exp_H_j1j2**2
+    return var_H
+
 
 def get_HR_distance(hyperparam_dict, param_idx, params_dir_path, backend):
     cov_mat = np.zeros((3,3))
@@ -221,12 +261,32 @@ def test4():
         #breakpoint()
         print("This is <X0Z1Z3> value from shot noise simulation: ", get_exp_cross(cross_m, [0,1,3]))
 
+def test5():
+    """
+    compares expected Hamiltonian variance values
+    """
+    params_dir_path = pathlib.Path("/root/research/HR/PAPER_FIGURES/J1-J2/tests/ALA_3layers_noiseless/params_dir")
+    param_idx = 400
+    shots = 100000
+    hyperparam_dict = get_HR_hyperparam_dict(params_dir_path.parents[0], shots)
+    m, n = hyperparam_dict["m"], hyperparam_dict["n"]
+    var_params = get_params(params_dir_path, param_idx)
+    backend = Aer.get_backend(hyperparam_dict["backend"])
+    statevector = get_statevector(m, n, var_params, hyperparam_dict["n_layers"], hyperparam_dict["ansatz_type"], backend)
+    ops_l = get_operations_l(m, n)
+    exp_var = get_variance_noiseless(hyperparam_dict,statevector, ops_l)
+    print("This is noiseless Hamiltonian Variance: ", exp_var)
+    for _ in range(10):
+        var_H = get_variance(hyperparam_dict, param_idx, params_dir_path, backend)
+        print("This is noisy Hamiltonian Variance: ", var_H)
+
 def main():
     #RUN TESTS
-    test1()
-    test2()
-    test3()
-    test4()
+    # test1()
+    # test2()
+    # test3()
+    # test4()
+    test5()
 
 if __name__ == '__main__':
     main()

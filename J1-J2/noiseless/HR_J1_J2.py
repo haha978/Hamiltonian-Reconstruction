@@ -38,6 +38,13 @@ def get_params(params_dir_path, param_idx):
     var_params = np.load(os.path.join(params_dir_path, f"var_params_{param_idx}.npy"))
     return var_params
 
+def get_variance(hyperparam_dict, wf, ops_l):
+    ops_n = len(ops_l)
+    #intialize covariance matrix, with all its entries being zeros.
+    Ham = ops_l[0] + hyperparam_dict["J1"]*ops_l[1] + hyperparam_dict["J2"]*ops_l[2]
+    var_H = expected_op1_op2(Ham, Ham, wf) - expected_op(Ham, wf)**2
+    return var_H
+
 def get_HR_distance(hyperparam_dict, wf, ops_l):
     ops_n = len(ops_l)
     #intialize covariance matrix, with all its entries being zeros.
