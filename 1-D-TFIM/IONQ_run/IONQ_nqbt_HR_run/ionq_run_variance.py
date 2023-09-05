@@ -100,7 +100,6 @@ def get_variance(hyperparam_dict, param_idx, params_dir_path, backend):
     exp_H = exp_X + hyperparam_dict["J"]*exp_ZZ
     cov_mat[0, 0] =  get_exp_X(x_m, 2) - exp_X**2
     cov_mat[1, 1] = get_exp_ZZ(z_m, 2) - exp_ZZ**2
-
     cross_val = 0
     z_indices = [[i, i+1] for i in range(n_qbts) if i != (n_qbts-1)]
     for h_idx in range(n_qbts):
@@ -110,8 +109,7 @@ def get_variance(hyperparam_dict, param_idx, params_dir_path, backend):
             if h_idx not in z_ind:
                 indices = h_l + z_ind
                 cross_val += get_exp_cross(cross_m, indices)
-
-    exp_H_2 = get_exp_X(x_m, 2) + (hyperparam_dict["J"]**2) * get_exp_ZZ(z_m, 2) + hyperparam_dict["J"]*cross_val
+    exp_H_2 = get_exp_X(x_m, 2) + (hyperparam_dict["J"]**2) * get_exp_ZZ(z_m, 2) + 2*hyperparam_dict["J"]*cross_val
     var_H = exp_H_2 - exp_H**2
     return var_H
 
@@ -152,7 +150,7 @@ def main(args):
                                         location = "West US")
         backend = provider.get_backend(backend_name)
     hyperparam_dict["p1"], hyperparam_dict["p2"] = p1, p2
-    np.save(os.path.join(args.input_dir, "HR_hyperparam_dict.npy"), hyperparam_dict)
+    np.save(os.path.join(args.input_dir, "variance_hyperparam_dict.npy"), hyperparam_dict)
 
     print("This is hyperparameter dictionary newly constructed: ", hyperparam_dict)
     #number of shots

@@ -61,6 +61,31 @@ def get_HR_distance(hyperparam_dict, param_idx, params_dir_path, backend):
     HR_dist = distanceVecFromSubspace(orig_H, vec[:, :1])
     return HR_dist
 
+def get_variance(hyperparam_dict, param_idx, params_dir_path, backend):
+    cov_mat = np.zeros((2,2))
+    n_qbts = hyperparam_dict["n_qbts"]
+    #need to delete the below as well
+    z_l, x_l = [], [i for i in range(n_qbts)]
+    var_params = get_params(params_dir_path, param_idx)
+    z_m = get_measurement(n_qbts, var_params, backend, z_l, hyperparam_dict, param_idx)
+    x_m = get_measurement(n_qbts, var_params, backend, x_l, hyperparam_dict, param_idx)
+    exp_X, exp_ZZ = get_exp_X(x_m, 1),  get_exp_ZZ(z_m, 1)
+    exp_H = exp_X + hyperparam_dict["J"]*exp_ZZ
+    cov_mat[0, 0] =  get_exp_X(x_m, 2) - exp_X**2
+    cov_mat[1, 1] = get_exp_ZZ(z_m, 2) - exp_ZZ**2
+    cross_val = 0
+    z_indices = [[i, i+1] for i in range(n_qbts) if i != (n_qbts-1)]
+    for h_idx in range(n_qbts):
+        h_l = [h_idx]
+        cross_m = get_measurement(n_qbts, var_params, backend, h_l, hyperparam_dict, param_idx)
+        for z_ind in z_indices:
+            if h_idx not in z_ind:
+                indices = h_l + z_ind
+                cross_val += get_exp_cross(cross_m, indices)
+    exp_H_2 = get_exp_X(x_m, 2) + (hyperparam_dict["J"]**2) * get_exp_ZZ(z_m, 2) + 2*hyperparam_dict["J"]*cross_val
+    var_H = exp_H_2 - exp_H**2
+    return var_H
+
 def get_statevector(n_qbts, var_params, n_layers, backend):
     circ = Q_Circuit(n_qbts, var_params, [], n_layers)
     circ.save_statevector()
@@ -91,6 +116,14 @@ def get_HR_distance_noiseless(hyperparam_dict, wf, ops_l):
     HR_dist = distanceVecFromSubspace(orig_H, vec[:, :1])
     return HR_dist
 
+def get_variance_noiseless(hyperparam_dict, wf, ops_l):
+    ops_n = len(ops_l)
+    Hx, Hzz = ops_l[0], ops_l[1]
+    #intialize covariance matrix, with all its entries being zeros.
+    cov_mat = np.zeros((ops_n, ops_n), dtype=float)
+    Ham = Hx + hyperparam_dict["J"]*Hzz
+    var_H = expected_op1_op2(Ham, Ham, wf) - expected_op(Ham, wf)**2
+    return var_H
 
 def test1():
     #input_dir can be any output_dir of IONQ_nqbt_HR_run/ionq_run.py and IONQ_nqbt_HR_run/ionq_run_HR.py
@@ -113,8 +146,29 @@ def test1():
         HR_dist_noisy = get_HR_distance(hyperparam_dict, param_idx, params_dir_path, backend)
         #print("This is noisy HR distance: ", HR_dist_noisy)
 
+def test2():
+    input_dir = "/root/research/HR/PAPER_FIGURES/Hamiltonian-Reconstruction/1-D-TFIM/IONQ_run/IONQ_nqbt_HR_run/6qbt_noiseless"
+    params_dir_path = os.path.join(input_dir, "params_dir")
+    param_idx = 250
+    var_params = get_params(params_dir_path, param_idx)
+    hyperparam_dict= np.load(os.path.join(input_dir, "VQE_hyperparam_dict.npy"), allow_pickle = True).item()
+    n_qbts = hyperparam_dict["n_qbts"]
+    hyperparam_dict["backend"] = "aer_simulator"
+    hyperparam_dict["shots"] = 100000
+    shots = hyperparam_dict["shots"]
+    backend = Aer.get_backend(hyperparam_dict["backend"])
+    statevector = get_statevector(n_qbts, var_params, hyperparam_dict["n_layers"], backend)
+    ops_l = []
+    ops_l.append(get_Hx(n_qbts))
+    ops_l.append(get_Hzz(n_qbts))
+    var_H = get_variance_noiseless(hyperparam_dict, statevector, ops_l)
+    print("This is noiseless variance: ", var_H)
+    for _ in range(10):
+        var_H_noisy = get_variance(hyperparam_dict, param_idx, params_dir_path, backend)
+        print(f"This is noisy variance with {shots} : ", var_H_noisy)
+
 def main():
-    test1()
+    test2()
 
 if __name__ == '__main__':
     main()
